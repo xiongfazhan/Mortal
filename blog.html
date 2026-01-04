@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技术博客 - 熊发展</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/common.css">
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-12 w-12 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    熊
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-stone-800">熊发展</h1>
+                    <p class="text-sm text-stone-500">技术博客</p>
+                </div>
+            </a>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-stone-600">
+                <a href="index.html" class="hover:text-teal-700 transition-colors">首页</a>
+                <a href="resume.html" class="hover:text-teal-700 transition-colors">简历</a>
+                <a href="playground/index.html" class="hover:text-teal-700 transition-colors">趣玩</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <!-- Page Header -->
+        <section class="mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">技术博客</h1>
+            <p class="text-lg text-stone-600">分享在 CV、LLM、工程化方面的学习与实践心得</p>
+        </section>
+
+        <!-- Category Filter -->
+        <section class="mb-8">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="filterPosts('all')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-teal-700 text-white" data-category="all">
+                    全部
+                </button>
+                <button onclick="filterPosts('cv')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-stone-600 border border-stone-200 hover:border-teal-300 hover:text-teal-700 transition-colors" data-category="cv">
+                    <i class="fas fa-eye mr-1"></i>计算机视觉
+                </button>
+                <button onclick="filterPosts('llm')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-stone-600 border border-stone-200 hover:border-teal-300 hover:text-teal-700 transition-colors" data-category="llm">
+                    <i class="fas fa-brain mr-1"></i>LLM / 多模态
+                </button>
+                <button onclick="filterPosts('engineering')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white text-stone-600 border border-stone-200 hover:border-teal-300 hover:text-teal-700 transition-colors" data-category="engineering">
+                    <i class="fas fa-server mr-1"></i>工程化
+                </button>
+            </div>
+        </section>
+
+        <!-- Blog Posts Grid -->
+        <section id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Post 1 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="cv">
+                <div class="h-48 bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center">
+                    <i class="fas fa-eye text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-teal-50 text-teal-700 text-xs rounded">计算机视觉</span>
+                        <span class="text-xs text-stone-400">2024-12-20</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-12-20-vision-transformer.html">Vision Transformer 原理与实战</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">深入理解 ViT 的核心原理，从 Attention 机制到 Patch Embedding，结合代码实战讲解。</p>
+                    <a href="blog/2024-12-20-vision-transformer.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Post 2 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="llm">
+                <div class="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">LLM / 多模态</span>
+                        <span class="text-xs text-stone-400">2024-12-15</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-12-15-rag-practice.html">RAG 实战：从原理到生产部署</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">基于 FAISS + Qwen 构建企业级知识库，包含向量检索优化与幻觉抑制技巧。</p>
+                    <a href="blog/2024-12-15-rag-practice.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Post 3 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="engineering">
+                <div class="h-48 bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
+                    <i class="fas fa-server text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">工程化</span>
+                        <span class="text-xs text-stone-400">2024-12-10</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-12-10-fastapi-async.html">FastAPI 异步编程最佳实践</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">深入理解 async/await，解决 Python GIL 瓶颈，实现 200+ 并发视频流处理。</p>
+                    <a href="blog/2024-12-10-fastapi-async.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Post 4 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="cv">
+                <div class="h-48 bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center">
+                    <i class="fas fa-microchip text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-teal-50 text-teal-700 text-xs rounded">计算机视觉</span>
+                        <span class="text-xs text-stone-400">2024-12-05</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-12-05-yolo-improve.html">YOLO 改进实战：自定义 Attention 模块</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">从 MSDA 到 VGAU，分享我在 MGD-YOLO 中的模块设计经验与性能优化技巧。</p>
+                    <a href="blog/2024-12-05-yolo-improve.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Post 5 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="llm">
+                <div class="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">LLM / 多模态</span>
+                        <span class="text-xs text-stone-400">2024-11-28</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-11-28-qwen-vl.html">Qwen-VL 多模态应用实战</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">如何用视觉大模型解决 CV 长尾误报问题？CV + LLM 级联架构设计分享。</p>
+                    <a href="blog/2024-11-28-qwen-vl.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Post 6 -->
+            <article class="blog-post bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-stone-100" data-category="engineering">
+                <div class="h-48 bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
+                    <i class="fas fa-docker text-white text-5xl opacity-50"></i>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">工程化</span>
+                        <span class="text-xs text-stone-400">2024-11-20</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-stone-800 mb-2 hover:text-teal-700 transition-colors">
+                        <a href="blog/2024-11-20-docker-deploy.html">Docker 部署深度学习模型最佳实践</a>
+                    </h3>
+                    <p class="text-sm text-stone-600 mb-4 line-clamp-2">从 Dockerfile 编写到多阶段构建优化，打造生产级 AI 服务镜像。</p>
+                    <a href="blog/2024-11-20-docker-deploy.html" class="text-teal-700 text-sm font-medium hover:underline">
+                        阅读全文 <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </article>
+
+        </section>
+
+        <!-- Empty State (Hidden by default) -->
+        <section id="empty-state" class="hidden text-center py-16">
+            <i class="fas fa-inbox text-stone-300 text-6xl mb-4"></i>
+            <p class="text-stone-500">暂无该分类的文章</p>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">技术博客 - 持续更新中</p>
+            <div class="flex justify-center space-x-6">
+                <a href="index.html" class="hover:text-teal-400 transition-colors">首页</a>
+                <a href="resume.html" class="hover:text-teal-400 transition-colors">简历</a>
+                <a href="playground/index.html" class="hover:text-teal-400 transition-colors">趣玩</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Category Filter
+        function filterPosts(category) {
+            const posts = document.querySelectorAll('.blog-post');
+            const emptyState = document.getElementById('empty-state');
+            const buttons = document.querySelectorAll('.filter-btn');
+
+            // Update button styles
+            buttons.forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.classList.remove('bg-white', 'text-stone-600', 'border', 'border-stone-200');
+                    btn.classList.add('bg-teal-700', 'text-white');
+                } else {
+                    btn.classList.add('bg-white', 'text-stone-600', 'border', 'border-stone-200');
+                    btn.classList.remove('bg-teal-700', 'text-white');
+                }
+            });
+
+            // Filter posts
+            let visibleCount = 0;
+            posts.forEach(post => {
+                if (category === 'all' || post.dataset.category === category) {
+                    post.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    post.style.display = 'none';
+                }
+            });
+
+            // Show/hide empty state
+            emptyState.classList.toggle('hidden', visibleCount > 0);
+        }
+    </script>
+</body>
+
+</html>

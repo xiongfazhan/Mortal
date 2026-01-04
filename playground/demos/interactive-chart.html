@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式数据可视化 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(240, 147, 251, 0.3) 0%, transparent 50%);
+            animation: bgShift 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        select {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        select option {
+            background: #764ba2;
+            color: white;
+        }
+
+        input[type="range"] {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.8);
+        }
+
+        .btn-glow {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-glow:hover::before {
+            left: 100%;
+        }
+
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.4), rgba(118, 75, 162, 0.4));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        h1, h3, label, p, li, .stats-value {
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity" style="color: white;">
+                <i class="fas fa-arrow-left"></i>
+                <span class="font-bold">返回趣玩</span>
+            </a>
+            <a href="../../index.html" style="color: white;" class="hover:opacity-80 transition-opacity">
+                <i class="fas fa-home mr-1"></i>首页
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- Demo Header -->
+        <section class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">
+                <i class="fas fa-chart-line mr-2"></i>交互式数据可视化
+            </h1>
+            <p class="opacity-90">基于 Chart.js 的动态图表展示，支持实时数据更新和多种图表类型切换。</p>
+        </section>
+
+        <!-- Control Panel -->
+        <section class="glass-card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">控制面板</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">图表类型</label>
+                    <select id="chartType" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="line">折线图</option>
+                        <option value="bar">柱状图</option>
+                        <option value="radar">雷达图</option>
+                        <option value="doughnut">环形图</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">数据点数量: <span id="dataPointsValue">6</span></label>
+                    <input type="range" id="dataPoints" min="3" max="12" value="6" class="w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">数据范围</label>
+                    <select id="dataRange" class="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="small">小 (0-50)</option>
+                        <option value="medium" selected>中 (0-100)</option>
+                        <option value="large">大 (0-200)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3 mt-4">
+                <button onclick="generateRandomData()" class="btn-glow px-4 py-2 rounded-lg">
+                    <i class="fas fa-random mr-2"></i>随机数据
+                </button>
+                <button onclick="toggleAutoUpdate()" id="autoUpdateBtn" class="btn-glow px-4 py-2 rounded-lg">
+                    <i class="fas fa-play mr-2"></i>自动更新
+                </button>
+                <button onclick="resetChart()" class="btn-glow px-4 py-2 rounded-lg">
+                    <i class="fas fa-undo mr-2"></i>重置
+                </button>
+            </div>
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Main Chart -->
+            <div class="glass-card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">主图表</h3>
+                <div style="height: 350px;">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comparison Chart -->
+            <div class="glass-card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">对比图表</h3>
+                <div style="height: 350px;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Real-time Stats -->
+        <section class="stats-card rounded-xl text-white p-6">
+            <h3 class="text-lg font-semibold mb-4">实时统计</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white/10 rounded-lg p-4">
+                    <div class="text-xs opacity-80 mb-1">数据点总数</div>
+                    <div class="text-2xl font-bold" id="statTotal">0</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4">
+                    <div class="text-xs opacity-80 mb-1">最大值</div>
+                    <div class="text-2xl font-bold" id="statMax">0</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4">
+                    <div class="text-xs opacity-80 mb-1">最小值</div>
+                    <div class="text-2xl font-bold" id="statMin">0</div>
+                </div>
+                <div class="bg-white/10 rounded-lg p-4">
+                    <div class="text-xs opacity-80 mb-1">平均值</div>
+                    <div class="text-2xl font-bold" id="statAvg">0</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: rgba(15, 12, 41, 0.8);" class="text-stone-300 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm opacity-80">Demo 页面 - 基于 Chart.js 构建</p>
+        </div>
+    </footer>
+
+    <script>
+        // Global variables
+        let mainChart = null;
+        let comparisonChart = null;
+        let autoUpdateInterval = null;
+        let currentData = [];
+
+        // Chart configuration - 渐变配色
+        const chartColors = [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(240, 147, 251, 0.8)',
+            'rgba(249, 115, 22, 0.8)',
+            'rgba(236, 72, 153, 0.8)',
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(34, 197, 94, 0.8)',
+        ];
+
+        const labels = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            generateRandomData();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('chartType').addEventListener('change', updateChartType);
+            document.getElementById('dataPoints').addEventListener('input', (e) => {
+                document.getElementById('dataPointsValue').textContent = e.target.value;
+                generateRandomData();
+            });
+            document.getElementById('dataRange').addEventListener('change', generateRandomData);
+        }
+
+        function initCharts() {
+            // Main Chart
+            const mainCtx = document.getElementById('mainChart').getContext('2d');
+            mainChart = new Chart(mainCtx, {
+                type: 'line',
+                data: {
+                    labels: labels.slice(0, 6),
+                    datasets: [{
+                        label: '数据集 A',
+                        data: [],
+                        borderColor: chartColors[0],
+                        backgroundColor: chartColors[0].replace('0.8', '0.2'),
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: 'white' } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // Comparison Chart
+            const compCtx = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(compCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels.slice(0, 6),
+                    datasets: [
+                        {
+                            label: '数据集 A',
+                            data: [],
+                            backgroundColor: chartColors[0]
+                        },
+                        {
+                            label: '数据集 B',
+                            data: [],
+                            backgroundColor: chartColors[1]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: 'white' } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateRandomData() {
+            const numPoints = parseInt(document.getElementById('dataPoints').value);
+            const range = document.getElementById('dataRange').value;
+
+            let maxValue = 50;
+            if (range === 'medium') maxValue = 100;
+            if (range === 'large') maxValue = 200;
+
+            currentData = Array.from({ length: numPoints }, () => Math.floor(Math.random() * maxValue));
+            const dataB = Array.from({ length: numPoints }, () => Math.floor(Math.random() * maxValue));
+
+            mainChart.data.labels = labels.slice(0, numPoints);
+            mainChart.data.datasets[0].data = currentData;
+            mainChart.update();
+
+            comparisonChart.data.labels = labels.slice(0, numPoints);
+            comparisonChart.data.datasets[0].data = currentData;
+            comparisonChart.data.datasets[1].data = dataB;
+            comparisonChart.update();
+
+            updateStats(currentData);
+        }
+
+        function updateStats(data) {
+            const total = data.length;
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            const avg = (data.reduce((a, b) => a + b, 0) / total).toFixed(1);
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statMax').textContent = max;
+            document.getElementById('statMin').textContent = min;
+            document.getElementById('statAvg').textContent = avg;
+        }
+
+        function updateChartType() {
+            const newType = document.getElementById('chartType').value;
+            mainChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+
+            const isRadarOrDoughnut = newType === 'radar' || newType === 'doughnut';
+            const newData = currentData.length > 0 ? currentData : [30, 50, 40, 60, 45, 55];
+
+            mainChart = new Chart(ctx, {
+                type: newType,
+                data: {
+                    labels: labels.slice(0, newData.length),
+                    datasets: [{
+                        label: '数据集 A',
+                        data: newData,
+                        borderColor: chartColors[0],
+                        backgroundColor: isRadarOrDoughnut
+                            ? chartColors.map((c, i) => c.replace('0.8', '0.6'))
+                            : chartColors[0].replace('0.8', '0.2'),
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: 'white' } }
+                    },
+                    scales: isRadarOrDoughnut ? {} : {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(255,255,255,0.8)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleAutoUpdate() {
+            const btn = document.getElementById('autoUpdateBtn');
+            if (autoUpdateInterval) {
+                clearInterval(autoUpdateInterval);
+                autoUpdateInterval = null;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i>自动更新';
+            } else {
+                autoUpdateInterval = setInterval(generateRandomData, 2000);
+                btn.innerHTML = '<i class="fas fa-pause mr-2"></i>停止更新';
+            }
+        }
+
+        function resetChart() {
+            if (autoUpdateInterval) {
+                toggleAutoUpdate();
+            }
+
+            document.getElementById('chartType').value = 'line';
+            document.getElementById('dataPoints').value = 6;
+            document.getElementById('dataPointsValue').textContent = '6';
+            document.getElementById('dataRange').value = 'medium';
+
+            updateChartType();
+            generateRandomData();
+        }
+    </script>
+</body>
+
+</html>

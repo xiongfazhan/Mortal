@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虫洞飞行 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            user-select: none;
+        }
+
+        /* 动态极光背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(102, 126, 234, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(240, 147, 251, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(0, 210, 255, 0.15) 0%, transparent 60%);
+            animation: nebula 10s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes nebula {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        #wormholeCanvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        .instructions.fade-out {
+            opacity: 0;
+        }
+
+        .hud {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap-8;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+
+        .hud-item {
+            text-align: center;
+        }
+
+        .hud-label {
+            font-size: 11px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .hud-value {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .speed-indicator {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            z-index: 100;
+            width: 6px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .speed-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top,
+                #00d2ff,
+                #667eea,
+                #f093fb,
+                #feca57,
+                #ff6b6b);
+            border-radius: 3px;
+            transition: height 0.1s;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%);
+        }
+
+        .chromatic {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 51;
+            mix-blend-mode: screen;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .chromatic.active {
+            opacity: 0.2;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(10, 10, 25, 0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f093fb;
+            font-size: 20px;
+            border: 1px solid rgba(240, 147, 251, 0.4);
+            box-shadow: 0 8px 32px rgba(240, 147, 251, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            box-shadow: 0 0 30px rgba(240, 147, 251, 0.8);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="wormholeCanvas"></canvas>
+
+    <div class="vignette"></div>
+    <div class="chromatic" id="chromatic"></div>
+
+    <div class="instructions" id="instructions">
+        <i class="fas fa-hand-pointer text-4xl mb-4 opacity-80"></i>
+        <p class="text-xl mb-2">按住鼠标下滚加速 / 上滚减速</p>
+        <p class="text-sm opacity-70">或使用键盘 ↑↓ 键 / 空格键</p>
+    </div>
+
+    <div class="hud" id="hud" style="opacity: 0; transition: opacity 0.5s;">
+        <div class="hud-item">
+            <div class="hud-label">Velocity</div>
+            <div class="hud-value" id="velocity">0</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">Distance</div>
+            <div class="hud-value" id="distance">0 LY</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">Time Dilation</div>
+            <div class="hud-value" id="timeDilation">1.00x</div>
+        </div>
+    </div>
+
+    <div class="speed-indicator">
+        <div class="speed-fill" id="speedFill"></div>
+    </div>
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <script>
+        const canvas = document.getElementById('wormholeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height, centerX, centerY;
+        let stars = [];
+        let velocity = 0;
+        let targetVelocity = 0;
+        let maxVelocity = 60;
+        let distance = 0;
+        let instructionsVisible = true;
+        let isMouseDown = false;
+
+        // 星星参数 - 增强版
+        const STAR_COUNT = 800;
+        const BASE_SIZE = 2.5;
+
+        // 炫彩颜色方案
+        const colorPalettes = [
+            { hue: 220, saturation: 80, lightness: 70 },  // 蓝色
+            { hue: 280, saturation: 85, lightness: 65 },  // 紫色
+            { hue: 320, saturation: 90, lightness: 70 },  // 粉色
+            { hue: 180, saturation: 80, lightness: 60 },  // 青色
+            { hue: 40, saturation: 90, lightness: 70 },   // 金色
+            { hue: 140, saturation: 80, lightness: 65 }    // 绿色
+        ];
+
+        class Star {
+            constructor() {
+                this.reset();
+                this.z = Math.random() * 1000;
+                this.colorOffset = Math.floor(Math.random() * colorPalettes.length);
+            }
+
+            reset() {
+                this.x = (Math.random() - 0.5) * width * 2;
+                this.y = (Math.random() - 0.5) * height * 2;
+                this.z = 1000;
+                this.size = BASE_SIZE;
+                this.twinkle = Math.random() * Math.PI * 2;
+                this.twinkleSpeed = 0.05 + Math.random() * 0.05;
+            }
+
+            update(speed) {
+                this.z -= speed;
+
+                if (this.z <= 0) {
+                    this.x = (Math.random() - 0.5) * width * 2;
+                    this.y = (Math.random() - 0.5) * height * 2;
+                    this.z = 1000;
+                }
+
+                // 闪烁效果
+                this.twinkle += this.twinkleSpeed;
+            }
+
+            draw() {
+                const scale = 1000 / this.z;
+                const screenX = centerX + this.x * scale;
+                const screenY = centerY + this.y * scale;
+                const size = this.size * scale;
+
+                const speedFactor = velocity / maxVelocity;
+                const adjustedSize = size * (1 + speedFactor * 3);
+
+                // 获取颜色方案
+                const colorIdx = (this.colorOffset + Math.floor(speedFactor * 3)) % colorPalettes.length;
+                const palette = colorPalettes[colorIdx];
+
+                // 动态颜色变化
+                const hue = palette.hue + speedFactor * 60;
+                const saturation = palette.saturation + speedFactor * 20;
+                const lightness = palette.lightness + speedFactor * 30;
+                const alpha = Math.min(1, (1000 - this.z) / 200);
+
+                // 闪烁效果
+                const twinkleFactor = 0.7 + Math.sin(this.twinkle) * 0.3;
+
+                // 超高速径向模糊 - 增强版
+                if (velocity > 8) {
+                    const blurLength = velocity * 3 * scale;
+                    const angle = Math.atan2(this.y, this.x);
+
+                    // 多层模糊
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(screenX, screenY);
+                        ctx.lineTo(
+                            screenX - Math.cos(angle) * blurLength * (1 - i * 0.3),
+                            screenY - Math.sin(angle) * blurLength * (1 - i * 0.3)
+                        );
+                        ctx.strokeStyle = `hsla(${hue + i * 10}, ${saturation}%, ${lightness}%, ${alpha * 0.4 * twinkleFactor})`;
+                        ctx.lineWidth = adjustedSize * (1 - i * 0.25);
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                    }
+                }
+
+                // 星星核心发光效果
+                const coreGlow = ctx.createRadialGradient(
+                    screenX, screenY, 0,
+                    screenX, screenY, adjustedSize * 3
+                );
+                coreGlow.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha * twinkleFactor})`);
+                coreGlow.addColorStop(0.4, `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha * 0.5 * twinkleFactor})`);
+                coreGlow.addColorStop(1, 'transparent');
+
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, adjustedSize * 3, 0, Math.PI * 2);
+                ctx.fillStyle = coreGlow;
+                ctx.fill();
+
+                // 星星主体
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, adjustedSize, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness + 20}%, ${alpha * twinkleFactor})`;
+                ctx.fill();
+
+                // 高速时的光晕效果
+                if (speedFactor > 0.5) {
+                    const outerGlow = ctx.createRadialGradient(
+                        screenX, screenY, 0,
+                        screenX, screenY, adjustedSize * 4
+                    );
+                    outerGlow.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha * 0.3 * twinkleFactor})`);
+                    outerGlow.addColorStop(1, 'transparent');
+
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, adjustedSize * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = outerGlow;
+                    ctx.fill();
+                }
+            }
+        }
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+
+            stars = [];
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push(new Star());
+            }
+        }
+
+        function animate() {
+            // 动态背景渐变
+            const speedFactor = velocity / maxVelocity;
+
+            // 背景颜色随速度变化
+            const bgGradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, Math.max(width, height)
+            );
+
+            // 炫彩背景
+            if (speedFactor > 0.3) {
+                bgGradient.addColorStop(0, `hsl(${240 + speedFactor * 60}, 50%, ${5 + speedFactor * 10}%)`);
+                bgGradient.addColorStop(0.5, `hsl(${280 + speedFactor * 40}, 40%, ${3 + speedFactor * 7}%)`);
+                bgGradient.addColorStop(1, '#000');
+            } else {
+                bgGradient.addColorStop(0, '#0a0a15');
+                bgGradient.addColorStop(0.5, '#050510');
+                bgGradient.addColorStop(1, '#000');
+            }
+
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 虫洞隧道效果 - 炫彩版
+            if (speedFactor > 0.1) {
+                const tunnelOpacity = speedFactor * 0.5;
+                for (let i = 0; i < 7; i++) {
+                    const radius = (i + 1) * 180 * (1 - speedFactor * 0.4);
+                    const hue = (200 + i * 30 + speedFactor * 100) % 360;
+
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+
+                    // 渐变边框
+                    const gradient = ctx.createRadialGradient(
+                        centerX, centerY, radius - 5,
+                        centerX, centerY, radius + 5
+                    );
+                    gradient.addColorStop(0, 'transparent');
+                    gradient.addColorStop(0.5, `hsla(${hue}, 80%, 60%, ${tunnelOpacity / (i + 1)})`);
+                    gradient.addColorStop(1, 'transparent');
+
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // 发光效果
+                    ctx.shadowColor = `hsla(${hue}, 80%, 60%, 0.8)`;
+                    ctx.shadowBlur = 15 * speedFactor;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // 更新和绘制星星
+            stars.forEach(star => {
+                star.update(velocity);
+                star.draw();
+            });
+
+            // 平滑速度变化
+            velocity += (targetVelocity - velocity) * 0.05;
+
+            // 更新距离
+            distance += velocity * 0.15;
+
+            // 更新 UI
+            updateHUD();
+
+            // 隐藏/显示说明
+            if (instructionsVisible && (velocity > 1 || Math.abs(targetVelocity) > 0.5)) {
+                instructionsVisible = false;
+                document.getElementById('instructions').classList.add('fade-out');
+                document.getElementById('hud').style.opacity = '1';
+            } else if (!instructionsVisible && velocity < 0.1 && Math.abs(targetVelocity) < 0.1) {
+                instructionsVisible = true;
+                document.getElementById('instructions').classList.remove('fade-out');
+                document.getElementById('hud').style.opacity = '0';
+            }
+
+            // 色差效果
+            const chromatic = document.getElementById('chromatic');
+            if (speedFactor > 0.5) {
+                chromatic.classList.add('active');
+            } else {
+                chromatic.classList.remove('active');
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function updateHUD() {
+            document.getElementById('velocity').textContent = Math.abs(velocity).toFixed(1);
+            document.getElementById('distance').textContent = Math.floor(distance) + ' LY';
+
+            const timeDilation = 1 / Math.sqrt(1 - Math.min(0.95, (velocity / (maxVelocity * 1.5)) ** 2));
+            document.getElementById('timeDilation').textContent = timeDilation.toFixed(2) + 'x';
+
+            const speedPercent = Math.min(100, (Math.abs(velocity) / maxVelocity) * 100);
+            document.getElementById('speedFill').style.height = speedPercent + '%';
+        }
+
+        // 滚轮事件（直接监听，不依赖页面滚动）
+        window.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const delta = e.deltaY;
+
+            if (delta < 0) {
+                targetVelocity = Math.min(maxVelocity, targetVelocity + 4);
+            } else {
+                targetVelocity = Math.max(-maxVelocity * 0.5, targetVelocity - 4);
+            }
+
+            if (!isMouseDown) {
+                clearTimeout(window.scrollTimeout);
+                window.scrollTimeout = setTimeout(() => {
+                    targetVelocity = 0;
+                }, 150);
+            }
+        }, { passive: false });
+
+        // 鼠标按下状态
+        window.addEventListener('mousedown', () => {
+            isMouseDown = true;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            clearTimeout(window.scrollTimeout);
+            window.scrollTimeout = setTimeout(() => {
+                targetVelocity = 0;
+            }, 150);
+        });
+
+        // 触摸支持
+        let lastTouchY = 0;
+        let touchStartTime = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            lastTouchY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+            isMouseDown = true;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touchY = e.touches[0].clientY;
+            const deltaY = lastTouchY - touchY;
+            lastTouchY = touchY;
+
+            targetVelocity = deltaY * 0.4;
+            targetVelocity = Math.max(-maxVelocity * 0.5, Math.min(maxVelocity, targetVelocity));
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            isMouseDown = false;
+            targetVelocity = 0;
+        });
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                targetVelocity = Math.min(maxVelocity, targetVelocity + 3);
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                targetVelocity = Math.max(-maxVelocity * 0.5, targetVelocity - 3);
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                targetVelocity = targetVelocity === 0 ? 15 : 0;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' ||
+                e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                targetVelocity = 0;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            init();
+        });
+
+        // 初始化
+        init();
+        animate();
+    </script>
+</body>
+</html>

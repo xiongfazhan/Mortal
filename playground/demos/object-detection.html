@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时目标检测 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- COCO-SSD 模型 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a2a 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 动态科技感背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(0, 210, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(138, 43, 226, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(0, 245, 212, 0.1) 0%, transparent 60%);
+            animation: techBgShift 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes techBgShift {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* 网格效果 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .glass-card {
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(0, 210, 255, 0.1),
+                inset 0 1px 0 rgba(0, 210, 255, 0.2);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 210, 255, 0.5);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(0, 210, 255, 0.2),
+                inset 0 1px 0 rgba(0, 210, 255, 0.3);
+        }
+
+        #video-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #webcam, #canvas {
+            max-width: 100%;
+            border-radius: 12px;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .detection-badge {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+            50% { opacity: 0.7; box-shadow: 0 0 20px currentColor; }
+        }
+
+        .btn-tech {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.8), rgba(0, 245, 212, 0.8));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 210, 255, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-tech::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-tech:hover::before {
+            left: 100%;
+        }
+
+        .btn-tech:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.8), rgba(255, 69, 69, 0.8));
+            border: 1px solid rgba(255, 107, 107, 0.5);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+
+        input[type="range"] {
+            height: 8px;
+            background: rgba(0, 210, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            background: linear-gradient(135deg, #00d2ff, #00f5d4);
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.8);
+        }
+
+        .stats-value {
+            background: linear-gradient(135deg, #00d2ff, #00f5d4, #8a2be2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .model-info-card {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(0, 210, 255, 0.3));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(138, 43, 226, 0.2),
+                inset 0 1px 0 rgba(138, 43, 226, 0.3);
+        }
+
+        .video-wrapper {
+            background: linear-gradient(135deg, rgba(0, 10, 30, 0.9), rgba(10, 20, 50, 0.9));
+            border: 2px solid rgba(0, 210, 255, 0.3);
+            box-shadow:
+                0 0 40px rgba(0, 210, 255, 0.15),
+                inset 0 0 40px rgba(0, 210, 255, 0.05);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00d2ff;
+            font-size: 20px;
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 210, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
+        }
+
+        h1, h3, label, p, li {
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .detected-item {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .detected-item:hover {
+            background: rgba(0, 210, 255, 0.2);
+            border-color: rgba(0, 210, 255, 0.4);
+            transform: translateX(5px);
+        }
+
+        /* 扫描线动画 */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d2ff, transparent);
+            animation: scan 2s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0; opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { top: 100%; opacity: 1; }
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50" style="background: rgba(10, 20, 40, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 210, 255, 0.3);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity" style="color: white;">
+                <i class="fas fa-arrow-left"></i>
+                <span class="font-bold">返回趣玩</span>
+            </a>
+            <a href="../../index.html" style="color: #00d2ff;" class="hover:opacity-80 transition-opacity">
+                <i class="fas fa-home mr-1"></i>首页
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- Demo Header -->
+        <section class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">
+                <i class="fas fa-video mr-2" style="color: #00d2ff;"></i>实时目标检测
+            </h1>
+            <p class="opacity-90">基于 TensorFlow.js + COCO-SSD 模型的浏览器端实时目标检测，无需后端服务器。</p>
+        </section>
+
+        <!-- Control Panel -->
+        <section class="glass-card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-cogs mr-2"></i>控制面板</h3>
+            <div class="flex flex-wrap gap-4 items-center">
+                <button id="startBtn" onclick="startDetection()" class="btn-tech px-6 py-3 rounded-lg text-white font-medium">
+                    <i class="fas fa-play mr-2"></i>启动摄像头
+                </button>
+                <button id="stopBtn" onclick="stopDetection()" class="btn-tech btn-danger px-6 py-3 rounded-lg text-white font-medium hidden">
+                    <i class="fas fa-stop mr-2"></i>停止检测
+                </button>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm">置信度阈值:</label>
+                    <input type="range" id="threshold" min="0" max="100" value="50" class="w-32" onchange="updateThreshold()">
+                    <span id="thresholdValue" class="text-sm" style="color: #00d2ff;">50%</span>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="showLabels" checked onchange="toggleLabels()" class="w-4 h-4">
+                    <span class="text-sm">显示标签</span>
+                </label>
+            </div>
+        </section>
+
+        <!-- Detection Area -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Video Area -->
+            <div class="lg:col-span-2">
+                <div class="glass-card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-eye mr-2"></i>检测画面</h3>
+                    <div id="video-container" class="video-wrapper rounded-lg p-4 min-h-[400px] flex items-center justify-center">
+                        <div class="scan-line hidden" id="scanLine"></div>
+                        <div id="placeholder" class="text-center" style="color: rgba(0, 210, 255, 0.5);">
+                            <i class="fas fa-camera text-6xl mb-4"></i>
+                            <p>点击"启动摄像头"开始检测</p>
+                        </div>
+                        <video id="webcam" class="hidden" autoplay playsinline muted></video>
+                        <canvas id="canvas" class="hidden"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="space-y-6">
+                <!-- Detection Stats -->
+                <div class="glass-card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-chart-bar mr-2"></i>检测统计</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm opacity-80">FPS</span>
+                            <span id="fpsValue" class="text-2xl font-bold stats-value">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm opacity-80">检测对象数</span>
+                            <span id="objectCount" class="text-2xl font-bold stats-value">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm opacity-80">总检测次数</span>
+                            <span id="totalDetections" class="text-2xl font-bold stats-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detected Objects -->
+                <div class="glass-card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-list mr-2"></i>当前检测对象</h3>
+                    <div id="detectedObjects" class="space-y-2 max-h-[200px] overflow-y-auto">
+                        <p class="text-sm text-center py-4 opacity-60">等待检测...</p>
+                    </div>
+                </div>
+
+                <!-- Model Info -->
+                <div class="model-info-card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-microchip mr-2"></i>模型信息</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-70">模型</span>
+                            <span style="color: #00d2ff;">COCO-SSD</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-70">类别数</span>
+                            <span style="color: #00f5d4;">80</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-70">推理引擎</span>
+                            <span style="color: #8a2be2;">TensorFlow.js</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-70">运行位置</span>
+                            <span style="color: #ff6b6b;">浏览器</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: rgba(10, 20, 40, 0.9);" class="py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm opacity-70">基于 TensorFlow.js 构建，所有检测均在本地完成</p>
+        </div>
+    </footer>
+
+    <script>
+        let model = null;
+        let video = null;
+        let canvas = null;
+        let ctx = null;
+        let isDetecting = false;
+        let animationId = null;
+
+        // 统计数据
+        let frameCount = 0;
+        let lastTime = Date.now();
+        let fps = 0;
+        let totalDetections = 0;
+
+        // 炫彩检测框颜色
+        const COLORS = [
+            '#00d2ff', '#00f5d4', '#8a2be2', '#ff6b6b', '#feca57',
+            '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3',
+            '#f857a6', '#ff5858', '#fa709a', '#fee140', '#a8edea'
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async () => {
+            video = document.getElementById('webcam');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            // 加载模型
+            await loadModel();
+        });
+
+        async function loadModel() {
+            try {
+                model = await cocoSsd.load();
+                console.log('Model loaded successfully');
+            } catch (error) {
+                console.error('Failed to load model:', error);
+                alert('模型加载失败，请检查网络连接');
+            }
+        }
+
+        async function startDetection() {
+            try {
+                // 请求摄像头权限
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: 640, height: 480 }
+                });
+
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+
+                    // 显示视频和画布
+                    document.getElementById('placeholder').classList.add('hidden');
+                    document.getElementById('scanLine').classList.remove('hidden');
+                    video.classList.remove('hidden');
+                    canvas.classList.remove('hidden');
+
+                    // 切换按钮
+                    document.getElementById('startBtn').classList.add('hidden');
+                    document.getElementById('stopBtn').classList.remove('hidden');
+
+                    isDetecting = true;
+                    detectFrame();
+                };
+            } catch (error) {
+                console.error('Failed to start webcam:', error);
+                alert('无法访问摄像头，请确保已授予权限');
+            }
+        }
+
+        function stopDetection() {
+            isDetecting = false;
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            // 停止摄像头
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            // 重置界面
+            video.classList.add('hidden');
+            canvas.classList.add('hidden');
+            document.getElementById('scanLine').classList.add('hidden');
+            document.getElementById('placeholder').classList.remove('hidden');
+
+            // 切换按钮
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('startBtn').classList.remove('hidden');
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function detectFrame() {
+            if (!isDetecting) return;
+
+            // 更新 FPS
+            frameCount++;
+            const currentTime = Date.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fpsValue').textContent = fps;
+            }
+
+            // 检测
+            const predictions = await model.detect(video);
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制检测框
+            const threshold = parseInt(document.getElementById('threshold').value) / 100;
+            const showLabels = document.getElementById('showLabels').checked;
+            const detectedObjects = [];
+
+            predictions.forEach((prediction, index) => {
+                if (prediction.score < threshold) return;
+
+                const [x, y, width, height] = prediction.bbox;
+                const color = COLORS[index % COLORS.length];
+
+                // 绘制发光边框
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+                ctx.strokeRect(x, y, width, height);
+                ctx.shadowBlur = 0;
+
+                // 绘制内发光效果
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.3;
+                ctx.strokeRect(x - 2, y - 2, width + 4, height + 4);
+                ctx.globalAlpha = 1;
+
+                // 绘制标签
+                if (showLabels) {
+                    const label = `${prediction.class} ${(prediction.score * 100).toFixed(0)}%`;
+                    const textWidth = ctx.measureText(label).width;
+                    const textHeight = 24;
+
+                    // 渐变标签背景
+                    const gradient = ctx.createLinearGradient(x, y - textHeight, x + textWidth + 10, y);
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(1, color + 'cc');
+
+                    ctx.fillStyle = gradient;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(x, y - textHeight, textWidth + 10, textHeight);
+                    ctx.shadowBlur = 0;
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(label, x + 5, y - 6);
+                }
+
+                detectedObjects.push({
+                    class: prediction.class,
+                    score: prediction.score,
+                    color: color
+                });
+
+                totalDetections++;
+            });
+
+            // 更新统计
+            document.getElementById('objectCount').textContent = detectedObjects.length;
+            document.getElementById('totalDetections').textContent = totalDetections;
+
+            // 更新检测对象列表
+            updateDetectedObjectsList(detectedObjects);
+
+            // 继续检测
+            animationId = requestAnimationFrame(detectFrame);
+        }
+
+        function updateDetectedObjectsList(objects) {
+            const container = document.getElementById('detectedObjects');
+
+            if (objects.length === 0) {
+                container.innerHTML = '<p class="text-sm text-center py-4 opacity-60">未检测到对象</p>';
+                return;
+            }
+
+            container.innerHTML = objects.map(obj => `
+                <div class="detected-item flex items-center justify-between p-2 rounded">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full detection-badge" style="background-color: ${obj.color}; color: ${obj.color};"></div>
+                        <span class="text-sm font-medium">${obj.class}</span>
+                    </div>
+                    <span class="text-sm opacity-70">${(obj.score * 100).toFixed(0)}%</span>
+                </div>
+            `).join('');
+        }
+
+        function updateThreshold() {
+            const value = document.getElementById('threshold').value;
+            document.getElementById('thresholdValue').textContent = value + '%';
+        }
+
+        function toggleLabels() {
+            // 标签显示会在下一帧自动更新
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子文字动画 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 动态背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(240, 147, 251, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(118, 75, 162, 0.3) 0%, transparent 50%);
+            animation: bgShift 10s ease-in-out infinite;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        #particleCanvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            color: white;
+            z-index: 100;
+            max-width: 280px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slider-container {
+            margin: 14px 0;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow:
+                0 4px 12px rgba(102, 126, 234, 0.5),
+                0 0 0 3px rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow:
+                0 6px 16px rgba(102, 126, 234, 0.7),
+                0 0 0 4px rgba(255, 255, 255, 0.4);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 15px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow:
+                inset 0 2px 4px rgba(0, 0, 0, 0.1),
+                0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .stats {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            z-index: 100;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            background: rgba(255, 255, 255, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="particleCanvas"></canvas>
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <div class="control-panel">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+            <i class="fas fa-sliders-h"></i>控制面板
+        </h3>
+
+        <div class="mb-4">
+            <label class="block text-sm mb-2">显示文字</label>
+            <input type="text" id="textInput" value="FZXiong" placeholder="输入文字..." maxlength="10">
+        </div>
+
+        <div class="slider-container">
+            <label>粒子数量 <span>1200</span></label>
+            <input type="range" id="particleCount" min="500" max="2500" value="1200">
+        </div>
+
+        <div class="slider-container">
+            <label>鼠标斥力半径 <span>120</span></label>
+            <input type="range" id="mouseRadius" min="60" max="200" value="120">
+        </div>
+
+        <div class="slider-container">
+            <label>斥力强度 <span>20</span></label>
+            <input type="range" id="repelForce" min="10" max="40" value="20">
+        </div>
+
+        <div class="slider-container">
+            <label>回归速度 <span>0.10</span></label>
+            <input type="range" id="returnSpeed" min="5" max="20" value="10">
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button onclick="changeColorScheme()" class="btn flex-1 px-4 py-2 rounded-lg text-sm font-medium">
+                换色
+            </button>
+            <button onclick="explode()" class="btn flex-1 px-4 py-2 rounded-lg text-sm font-medium">
+                爆炸
+            </button>
+        </div>
+
+        <div class="stats">
+            <div>FPS: <span id="fps">0</span></div>
+            <div>粒子数: <span id="actualParticles">0</span></div>
+        </div>
+    </div>
+
+    <div class="hint">
+        <i class="fas fa-mouse-pointer mr-2"></i>移动鼠标与粒子互动
+    </div>
+
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 120 };
+        let animationId;
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+
+        // 更炫彩的颜色方案
+        const colorSchemes = [
+            ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#f093fb', '#f5576c'],
+            ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3'],
+            ['#a8edea', '#fed6e3', '#ffecd2', '#fcb69f', '#ffeaa7', '#dfe6e9', '#fd79a8'],
+            ['#00d2ff', '#3a7bd5', '#00c6fb', '#005bea', '#667eea', '#764ba2', '#f093fb'],
+            ['#f857a6', '#ff5858', '#fa709a', '#fee140', '#f093fb', '#f5576c', '#4facfe'],
+            ['#7F00FF', '#E100FF', '#00D4FF', '#00FF94', '#FFD700', '#FF6B6B', '#4ECDC4']
+        ];
+        let currentColorScheme = 0;
+
+        // 设置
+        let settings = {
+            text: 'FZXiong',
+            particleCount: 1200,
+            mouseRadius: 120,
+            repelForce: 20,
+            returnSpeed: 0.1
+        };
+
+        // 粒子类 - 增强版
+        class Particle {
+            constructor(x, y) {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.targetX = x;
+                this.targetY = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.color = this.getRandomColor();
+                this.size = Math.random() * 2.5 + 0.8;
+                this.baseSize = this.size;
+                this.glowSize = Math.random() * 3 + 2;
+                this.pulse = Math.random() * Math.PI * 2;
+                this.pulseSpeed = 0.05 + Math.random() * 0.05;
+                this.hue = 0;
+            }
+
+            getRandomColor() {
+                const colors = colorSchemes[currentColorScheme];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                // 脉动效果
+                this.pulse += this.pulseSpeed;
+                this.size = this.baseSize + Math.sin(this.pulse) * 0.5;
+
+                // 鼠标斥力 - 增强版
+                if (mouse.x !== null && mouse.y !== null) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < settings.mouseRadius) {
+                        const force = (settings.mouseRadius - distance) / settings.mouseRadius;
+                        const angle = Math.atan2(dy, dx);
+                        const repelStrength = force * settings.repelForce;
+
+                        this.vx -= Math.cos(angle) * repelStrength;
+                        this.vy -= Math.sin(angle) * repelStrength;
+                    }
+                }
+
+                // 弹力回归目标位置
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+
+                this.vx += dx * settings.returnSpeed * 0.12;
+                this.vy += dy * settings.returnSpeed * 0.12;
+
+                // 缓动减速
+                this.vx *= 0.88;
+                this.vy *= 0.88;
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const alpha = Math.min(1, 0.6 + speed * 0.1);
+
+                // 发光效果
+                const glowSize = this.glowSize + speed * 2;
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, glowSize
+                );
+                gradient.addColorStop(0, this.color);
+                gradient.addColorStop(0.4, this.color + 'cc');
+                gradient.addColorStop(1, 'transparent');
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // 核心粒子
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = alpha;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            explode() {
+                const angle = Math.random() * Math.PI * 2;
+                const force = Math.random() * 25 + 15;
+                this.vx = Math.cos(angle) * force;
+                this.vy = Math.sin(angle) * force;
+            }
+        }
+
+        // 初始化画布
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // 获取文字粒子位置
+        function getTextPositions(text) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+
+            const fontSize = Math.min(canvas.width / 5, 200);
+            tempCtx.font = `bold ${fontSize}px Arial`;
+            tempCtx.fillStyle = 'white';
+            tempCtx.textAlign = 'center';
+            tempCtx.textBaseline = 'middle';
+            tempCtx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const positions = [];
+            const gap = 3;
+
+            for (let y = 0; y < canvas.height; y += gap) {
+                for (let x = 0; x < canvas.width; x += gap) {
+                    const index = (y * canvas.width + x) * 4;
+                    if (imageData.data[index + 3] > 128) {
+                        positions.push({ x, y });
+                    }
+                }
+            }
+
+            return positions;
+        }
+
+        // 初始化粒子
+        function initParticles() {
+            const positions = getTextPositions(settings.text);
+            settings.particleCount = Math.min(settings.particleCount, positions.length);
+
+            particles = [];
+            for (let i = 0; i < settings.particleCount; i++) {
+                const pos = positions[Math.floor(Math.random() * positions.length)];
+                particles.push(new Particle(pos.x, pos.y));
+            }
+
+            document.getElementById('actualParticles').textContent = particles.length;
+        }
+
+        // 动画循环
+        function animate(currentTime) {
+            frameCount++;
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fps').textContent = fps;
+            }
+
+            // 清空画布 - 带轻微拖尾效果
+            ctx.fillStyle = 'rgba(15, 12, 41, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 更新和绘制粒子
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 爆炸效果
+        function explode() {
+            particles.forEach(particle => particle.explode());
+        }
+
+        // 换色
+        function changeColorScheme() {
+            currentColorScheme = (currentColorScheme + 1) % colorSchemes.length;
+            particles.forEach(particle => {
+                particle.color = particle.getRandomColor();
+            });
+        }
+
+        // 事件监听
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchend', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+            initParticles();
+        });
+
+        // 控制面板事件
+        document.getElementById('textInput').addEventListener('input', (e) => {
+            settings.text = e.target.value || 'FZXiong';
+            initParticles();
+        });
+
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            settings.particleCount = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = settings.particleCount;
+            initParticles();
+        });
+
+        document.getElementById('mouseRadius').addEventListener('input', (e) => {
+            settings.mouseRadius = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = settings.mouseRadius;
+            mouse.radius = settings.mouseRadius;
+        });
+
+        document.getElementById('repelForce').addEventListener('input', (e) => {
+            settings.repelForce = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = settings.repelForce;
+        });
+
+        document.getElementById('returnSpeed').addEventListener('input', (e) => {
+            settings.returnSpeed = parseInt(e.target.value) / 100;
+            e.target.previousElementSibling.lastChild.textContent = settings.returnSpeed.toFixed(2);
+        });
+
+        // 初始化
+        initCanvas();
+        initParticles();
+        animate(0);
+    </script>
+</body>
+</html>

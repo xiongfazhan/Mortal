@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聊天助手 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 动态背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(240, 147, 251, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(118, 75, 162, 0.3) 0%, transparent 60%);
+            animation: bgShift 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .chat-container {
+            height: calc(100vh - 300px);
+            min-height: 400px;
+        }
+
+        .message-enter {
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* 用户消息气泡 */
+        .user-message {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.9), rgba(0, 245, 212, 0.9));
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+        }
+
+        /* AI 消息气泡 */
+        .ai-message {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 快捷按钮 */
+        .quick-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .quick-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 发送按钮 */
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* 输入框 */
+        .chat-input {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 聊天头部 */
+        .chat-header {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* AI 头像发光 */
+        .ai-avatar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+            animation: avatarPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes avatarPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.9); }
+        }
+
+        /* 用户头像 */
+        .user-avatar {
+            background: linear-gradient(135deg, #00d2ff, #00f5d4);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+        }
+
+        /* 统计卡片 */
+        .stats-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .stats-value {
+            background: linear-gradient(135deg, #00d2ff, #00f5d4, #667eea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        h1, h3, label, p, li {
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 聊天区域背景 */
+        .chat-bg {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* 在线状态点 */
+        .online-dot {
+            background: #00f5d4;
+            box-shadow: 0 0 10px #00f5d4;
+            animation: onlinePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes onlinePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 打字指示器点 */
+        .typing-dot {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity" style="color: white;">
+                <i class="fas fa-arrow-left"></i>
+                <span class="font-bold">返回趣玩</span>
+            </a>
+            <a href="../../index.html" style="color: white;" class="hover:opacity-80 transition-opacity">
+                <i class="fas fa-home mr-1"></i>首页
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- Demo Header -->
+        <section class="mb-6 text-center">
+            <h1 class="text-3xl font-bold mb-2">
+                <i class="fas fa-robot mr-2" style="color: #f093fb;"></i>AI 聊天助手
+            </h1>
+            <p class="opacity-90">模拟 AI 对话体验，支持多轮对话和上下文记忆（Demo 版本使用预设回复）</p>
+        </section>
+
+        <!-- Chat Interface -->
+        <section class="glass-card rounded-xl overflow-hidden">
+            <!-- Chat Header -->
+            <div class="chat-header text-white p-4 flex items-center gap-3">
+                <div class="ai-avatar w-12 h-12 rounded-full flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold">AI 助手</h3>
+                    <p class="text-sm opacity-90">
+                        <span class="online-dot inline-block w-2 h-2 rounded-full mr-1"></span>在线
+                    </p>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div id="chatContainer" class="chat-container overflow-y-auto p-4 space-y-4 chat-bg">
+                <!-- Welcome Message -->
+                <div class="flex items-start gap-3 message-enter">
+                    <div class="ai-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="ai-message rounded-2xl rounded-tl-none p-4 max-w-[80%]">
+                        <p class="text-stone-700">你好！我是 AI 助手，很高兴为你服务 🤖</p>
+                        <p class="text-stone-500 text-sm mt-2">你可以问我关于：</p>
+                        <ul class="text-stone-500 text-sm mt-1 space-y-1">
+                            <li>• 编程技术问题</li>
+                            <li>• 生活常识</li>
+                            <li>• 创意建议</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="p-4" style="background: rgba(255, 255, 255, 0.1); border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <p class="text-sm opacity-80 mb-3">快捷提问：</p>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="sendQuickMessage('介绍一下 Python')" class="quick-btn px-4 py-2 rounded-full text-sm">
+                        🐍 介绍 Python
+                    </button>
+                    <button onclick="sendQuickMessage('给我一个创意点子')" class="quick-btn px-4 py-2 rounded-full text-sm">
+                        💡 创意点子
+                    </button>
+                    <button onclick="sendQuickMessage('讲个笑话')" class="quick-btn px-4 py-2 rounded-full text-sm">
+                        😄 讲个笑话
+                    </button>
+                    <button onclick="sendQuickMessage('推荐一本好书')" class="quick-btn px-4 py-2 rounded-full text-sm">
+                        📚 推荐好书
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4" style="background: rgba(255, 255, 255, 0.1); border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <div class="flex gap-3">
+                    <input
+                        type="text"
+                        id="messageInput"
+                        placeholder="输入你的问题..."
+                        class="chat-input flex-1 px-4 py-3 rounded-full text-white focus:outline-none"
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button
+                        onclick="sendMessage()"
+                        class="send-btn px-6 py-3 text-white rounded-full transition-all"
+                    >
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="mt-6 grid grid-cols-3 gap-4">
+            <div class="stats-card rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold stats-value" id="messageCount">1</div>
+                <div class="text-xs opacity-80 mt-1">消息数</div>
+            </div>
+            <div class="stats-card rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold stats-value" id="responseTime">0</div>
+                <div class="text-xs opacity-80 mt-1">平均响应时间(ms)</div>
+            </div>
+            <div class="stats-card rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold stats-value" id="conversationLength">0</div>
+                <div class="text-xs opacity-80 mt-1">对话轮数</div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: rgba(15, 12, 41, 0.8);" class="py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm opacity-80">Demo 版本 - 实际项目可接入 OpenAI / Qwen 等真实 API</p>
+        </div>
+    </footer>
+
+    <script>
+        let conversationCount = 0;
+        let messageCount = 1;
+        let totalResponseTime = 0;
+        let conversationHistory = [];
+
+        // 预设回复库
+        const responses = {
+            python: `Python 是一种简洁优雅的编程语言 🐍
+
+**特点：**
+• 语法简洁，易于学习
+• 丰富的第三方库生态
+• 跨平台支持
+
+**应用领域：**
+• Web 开发（Django、Flask）
+• 数据科学（Pandas、NumPy）
+• 人工智能（TensorFlow、PyTorch）
+• 自动化脚本`,
+
+            idea: `这里有几个创意点子 💡
+
+1. **智能植物管家**
+   - 通过图像识别植物健康状态
+   - 自动提醒浇水、施肥
+
+2. **二手书交换平台**
+   - 校园内的图书共享社区
+   - 积分兑换机制
+
+3. **声音日记**
+   - 用语音记录每日心情
+   - AI 生成情绪趋势图
+
+你对哪个感兴趣？`,
+
+            joke: `给你讲个程序员笑话 😄
+
+程序员最讨厌什么？
+• 写文档
+• 写注释
+• 别人不写文档
+• 别人不写注释
+
+最讨厌的是：**写！完！以！后！发！现！代！码！跑！不！起！**
+
+哈哈哈 🤣`,
+
+            book: `推荐几本值得阅读的好书 📚
+
+**技术类：**
+• 《代码整洁之道》- Robert Martin
+• 《深入理解计算机系统》- Bryant & O'Hallaron
+
+**思维类：**
+• 《思考，快与慢》- Daniel Kahneman
+• 《原则》- Ray Dalio
+
+**小说类：**
+• 《三体》- 刘慈欣
+• 《活着》- 余华
+
+你对哪类书籍感兴趣？`,
+
+            default: `这是个很有趣的问题！🤔
+
+作为 Demo 版本，我的知识库有限。在实际应用中，可以接入：
+• OpenAI GPT API
+• 阿里通义千问
+• 百度文心一言
+
+这样就能回答更复杂的问题了！
+
+有其他问题吗？我可以继续帮你 💪`
+        };
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // 清空输入框
+            input.value = '';
+
+            // 添加用户消息
+            addMessage(message, 'user');
+
+            // 保存到历史
+            conversationHistory.push({ role: 'user', content: message });
+
+            // 显示输入中状态
+            showTypingIndicator();
+
+            // 模拟 AI 思考并回复
+            const startTime = Date.now();
+            setTimeout(() => {
+                hideTypingIndicator();
+                const response = generateResponse(message);
+                const responseTime = Date.now() - startTime;
+
+                addMessage(response, 'ai');
+                conversationHistory.push({ role: 'ai', content: response });
+
+                // 更新统计
+                messageCount += 2;
+                totalResponseTime += responseTime;
+                conversationCount++;
+                updateStats();
+
+            }, 1000 + Math.random() * 1500); // 随机延迟 1-2.5 秒
+        }
+
+        function generateResponse(message) {
+            const lowerMessage = message.toLowerCase();
+
+            if (lowerMessage.includes('python') || lowerMessage.includes('编程')) {
+                return responses.python;
+            } else if (lowerMessage.includes('创意') || lowerMessage.includes('点子')) {
+                return responses.idea;
+            } else if (lowerMessage.includes('笑话')) {
+                return responses.joke;
+            } else if (lowerMessage.includes('书') || lowerMessage.includes('推荐')) {
+                return responses.book;
+            } else {
+                return responses.default;
+            }
+        }
+
+        function addMessage(content, type) {
+            const container = document.getElementById('chatContainer');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start gap-3 message-enter';
+
+            if (type === 'user') {
+                messageDiv.classList.add('flex-row-reverse');
+                messageDiv.innerHTML = `
+                    <div class="user-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
+                    <div class="user-message text-white rounded-2xl rounded-tr-none p-4 max-w-[80%]">
+                        <p>${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="ai-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="ai-message rounded-2xl rounded-tl-none p-4 max-w-[80%]">
+                        <p class="text-stone-700 whitespace-pre-line">${content}</p>
+                    </div>
+                `;
+            }
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const container = document.getElementById('chatContainer');
+
+            const indicator = document.createElement('div');
+            indicator.id = 'typingIndicator';
+            indicator.className = 'flex items-start gap-3 message-enter';
+            indicator.innerHTML = `
+                <div class="ai-avatar w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-white text-sm"></i>
+                </div>
+                <div class="ai-message rounded-2xl rounded-tl-none p-4">
+                    <div class="typing-indicator flex gap-1">
+                        <span class="typing-dot w-2 h-2 rounded-full"></span>
+                        <span class="typing-dot w-2 h-2 rounded-full"></span>
+                        <span class="typing-dot w-2 h-2 rounded-full"></span>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(indicator);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('messageCount').textContent = messageCount;
+            document.getElementById('responseTime').textContent = Math.round(totalResponseTime / conversationCount);
+            document.getElementById('conversationLength').textContent = conversationCount;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>

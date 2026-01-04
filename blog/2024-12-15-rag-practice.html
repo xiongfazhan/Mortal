@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 实战：从原理到生产部署 - 熊发展的技术博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-10 w-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                    熊
+                </div>
+                <span class="font-bold text-stone-800">返回首页</span>
+            </a>
+            <a href="../blog.html" class="text-sm text-stone-600 hover:text-teal-700 transition-colors">
+                <i class="fas fa-arrow-left mr-1"></i>返回博客列表
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <article>
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded">LLM / 多模态</span>
+                    <span class="text-sm text-stone-400">2024-12-15</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">RAG 实战：从原理到生产部署</h1>
+                <p class="text-lg text-stone-600">基于 FAISS + Qwen 构建企业级知识库，包含向量检索优化与幻觉抑制技巧。</p>
+            </header>
+
+            <div class="prose prose-stone max-w-none">
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">一、RAG 是什么？</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    <strong>RAG (Retrieval-Augmented Generation)</strong> 是一种结合检索和生成的技术，通过从外部知识库中检索相关文档，增强大语言模型的生成能力。它有效解决了 LLM 的几个痛点：
+                </p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li>知识截止日期限制</li>
+                    <li>幻觉问题（一本正经胡说八道）</li>
+                    <li>私有数据无法利用</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">二、核心流程</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">RAG 系统主要由以下三个阶段组成：</p>
+
+                <div class="bg-stone-100 rounded-lg p-6 my-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 font-bold">1</div>
+                            <p class="text-sm font-medium">文档切分</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-stone-400"></i>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 font-bold">2</div>
+                            <p class="text-sm font-medium">向量化</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-stone-400"></i>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 font-bold">3</div>
+                            <p class="text-sm font-medium">检索+生成</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">三、代码实现</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.1 文档切分策略</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">合理的切分是 RAG 成功的关键：</p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# 递归切分器：保持段落完整性
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,           # 每块最大字符数
+    chunk_overlap=50,         # 块之间重叠字符数
+    length_function=len,
+    separators=["\n\n", "\n", "。", "！", "？", " ", ""]
+)
+
+chunks = text_splitter.split_text(长文档内容)</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.2 向量检索</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">使用 FAISS 构建高效的向量索引：</p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import faiss
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+# 1. 加载embedding模型
+encoder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
+# 2. 文档向量化
+doc_vectors = encoder.encode(chunks)
+
+# 3. 构建FAISS索引
+dimension = doc_vectors.shape[1]
+index = faiss.IndexFlatL2(dimension)  # L2距离
+index.add(doc_vectors.astype('float32'))
+
+# 4. 检索Top-K相关文档
+def search(query, k=3):
+    query_vector = encoder.encode([query])
+    distances, indices = index.search(query_vector.astype('float32'), k)
+    return [chunks[i] for i in indices[0]]</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.3 Prompt 模板设计</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">精心设计的 Prompt 可以显著提升回答质量：</p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">def build_prompt(query, context_docs):
+    context = "\n\n".join([
+        f"【文档{i+1}】{doc}"
+        for i, doc in enumerate(context_docs)
+    ])
+
+    prompt = f"""你是一个专业的AI助手。请根据以下参考文档回答用户问题。
+
+参考文档：
+{context}
+
+用户问题：{query}
+
+要求：
+1. 仅基于参考文档回答，如果文档中没有相关信息，请明确说明
+2. 引用文档时请注明来源（如【文档1】）
+3. 保持回答准确、简洁
+
+回答："""
+
+    return prompt</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">四、生产优化技巧</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.1 幻觉抑制</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>强制引用</strong>：要求模型在回答中引用文档来源</li>
+                    <li><strong>置信度阈值</strong>：设置检索相似度阈值，低于阈值不回答</li>
+                    <li><strong>双模型验证</strong>：用另一个模型对答案进行事实核查</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.2 检索优化</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>混合检索</strong>：结合向量检索和关键词检索（BM25）</li>
+                    <li><strong>重排序</strong>：用 Cross-Encoder 对检索结果重新打分</li>
+                    <li><strong>查询改写</strong>：用 LLM 对用户查询进行改写扩展</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.3 性能优化</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>GPU 加速</strong>：embedding 和 LLM 推理使用 GPU</li>
+                    <li><strong>批量处理</strong>：多用户请求合并 batch 处理</li>
+                    <li><strong>缓存机制</strong>：对高频问题的答案进行缓存</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">五、总结</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    RAG 系统看似简单，但要达到生产级别需要关注很多细节。本文介绍了从文档切分、向量检索到 Prompt 设计的完整流程，以及抑制幻觉和优化检索的实用技巧。建议读者在自己的数据集上进行实验，不断调优各个组件。
+                </p>
+            </div>
+
+            <footer class="mt-12 pt-8 border-t border-stone-200">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 text-sm text-stone-500">
+                        <i class="fas fa-tags"></i>
+                        <span>标签: </span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">RAG</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">LLM</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">FAISS</span>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <nav class="mt-12 pt-8 border-t border-stone-200">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="../blog/2024-12-20-vision-transformer.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100">
+                    <p class="text-xs text-stone-400 mb-1">下一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">Vision Transformer 原理与实战</p>
+                </a>
+                <a href="../blog/2024-12-10-fastapi-async.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100 text-right">
+                    <p class="text-xs text-stone-400 mb-1">上一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">FastAPI 异步编程最佳实践</p>
+                </a>
+            </div>
+        </nav>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">感谢阅读！欢迎留言交流</p>
+            <p class="text-xs text-stone-500">© 2024 熊发展. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+
+</html>

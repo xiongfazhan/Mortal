@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI 异步编程最佳实践 - 熊发展的技术博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-10 w-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                    熊
+                </div>
+                <span class="font-bold text-stone-800">返回首页</span>
+            </a>
+            <a href="../blog.html" class="text-sm text-stone-600 hover:text-teal-700 transition-colors">
+                <i class="fas fa-arrow-left mr-1"></i>返回博客列表
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <article>
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-purple-50 text-purple-700 text-sm rounded">工程化</span>
+                    <span class="text-sm text-stone-400">2024-12-10</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">FastAPI 异步编程最佳实践</h1>
+                <p class="text-lg text-stone-600">深入理解 async/await，解决 Python GIL 瓶颈，实现 200+ 并发视频流处理。</p>
+            </header>
+
+            <div class="prose prose-stone max-w-none">
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">一、为什么需要异步？</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    Python 的 <strong>GIL (Global Interpreter Lock)</strong> 限制了多线程的并行执行能力。在 IO 密集型任务（如网络请求、数据库查询、视频流处理）中，使用异步编程可以大幅提升并发性能。
+                </p>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">二、核心概念</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.1 async/await 基础</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python"># 异步函数定义
+async def fetch_data(url: str):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+
+# 调用异步函数
+async def main():
+    data = await fetch_data("https://api.example.com")
+    print(data)
+
+# 运行异步程序
+import asyncio
+asyncio.run(main())</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.2 并发执行</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">使用 <code>asyncio.gather</code> 或 <code>TASKGROUP</code> 实现并发：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import asyncio
+
+async def process_stream(stream_id: int):
+    # 模拟视频流处理
+    await asyncio.sleep(1)
+    return f"Stream {stream_id} processed"
+
+async def main():
+    # 方式1：gather
+    results = await asyncio.gather(
+        process_stream(1),
+        process_stream(2),
+        process_stream(3)
+    )
+
+    # 方式2：TaskGroup (Python 3.11+)
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(process_stream(i)) for i in range(1, 4)]
+
+    print(results)</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">三、FastAPI 异步实践</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.1 异步路由</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">from fastapi import FastAPI
+import asyncio
+
+app = FastAPI()
+
+@app.get("/stream/{stream_id}")
+async def process_video_stream(stream_id: int):
+    """异步处理视频流"""
+    # 1. 异步读取视频帧
+    frames = await read_frames_async(stream_id)
+
+    # 2. 异步推理
+    results = await asyncio.gather(
+        *[detect_objects(frame) for frame in frames]
+    )
+
+    return {"stream_id": stream_id, "results": results}</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.2 后台任务</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">对于长时间运行的任务，使用 BackgroundTasks：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">from fastapi import BackgroundTasks
+
+async def send_notification(email: str, message: str):
+    await asyncio.sleep(3)  # 模拟发送
+    print(f"Sent to {email}: {message}")
+
+@app.post("/notify")
+async def notify_user(
+    email: str,
+    message: str,
+    background_tasks: BackgroundTasks
+):
+    background_tasks.add_task(send_notification, email, message)
+    return {"status": "Notification queued"}</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">四、实战案例：200+ 视频流并发</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.1 架构设计</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">核心思路：每个视频流独立协程处理，使用回调机制通知结果：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import asyncio
+from collections import defaultdict
+from typing import Dict, Callable
+
+class StreamManager:
+    def __init__(self):
+        self.active_streams: Dict[int, bool] = {}
+        self.callbacks: Dict[int, Callable] = {}
+        self.results: Dict[int, list] = defaultdict(list)
+
+    async def start_stream(self, stream_id: int, callback: Callable):
+        """启动单个视频流处理"""
+        self.active_streams[stream_id] = True
+        self.callbacks[stream_id] = callback
+
+        while self.active_streams.get(stream_id, False):
+            # 1. 异步读取帧
+            frame = await self.read_frame(stream_id)
+
+            # 2. 异步检测
+            detections = await self.detect_objects(frame)
+
+            # 3. 回调通知
+            if callback:
+                await callback(stream_id, detections)
+
+            # 4. 存储结果
+            self.results[stream_id].append(detections)
+
+            await asyncio.sleep(0.033)  # ~30 FPS
+
+    async def read_frame(self, stream_id: int):
+        """异步读取视频帧（使用线程池处理 OpenCV）"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, cv2.imread, f"frame_{stream_id}.jpg")
+
+    async def detect_objects(self, frame):
+        """异步目标检测"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, model.predict, frame)
+
+    def stop_stream(self, stream_id: int):
+        """停止指定流"""
+        self.active_streams[stream_id] = False</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.2 使用示例</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">manager = StreamManager()
+
+async def result_callback(stream_id: int, detections):
+    """处理检测结果回调"""
+    print(f"Stream {stream_id}: {len(detections)} objects")
+
+async def main():
+    # 启动 200 个并发视频流
+    tasks = []
+    for i in range(200):
+        task = manager.start_stream(i, result_callback)
+        tasks.append(task)
+
+    # 等待所有流完成
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">五、常见陷阱</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">5.1 阻塞操作</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">不要在异步函数中直接使用同步的库：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python"># ❌ 错误：阻塞事件循环
+async def bad_example():
+    time.sleep(1)  # 同步阻塞！
+
+# ✅ 正确：使用异步版本
+async def good_example():
+    await asyncio.sleep(1)
+
+# ✅ 或者使用线程池执行阻塞操作
+async def with_executor():
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, time.sleep, 1)</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">5.2 数据库连接池</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python"># 使用异步数据库驱动
+from databases import Database
+import sqlalchemy
+
+database = Database("postgresql://user:pass@localhost/db")
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    query = "SELECT * FROM users WHERE id = :id"
+    return await database.fetch_one(query, {"id": user_id})</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">六、性能监控</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">使用 Prometheus 监控异步任务：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">from prometheus_client import Counter, Histogram
+import time
+
+request_count = Counter('http_requests_total', 'Total requests')
+request_duration = Histogram('http_request_duration_seconds', 'Request duration')
+
+@app.middleware("http")
+async def monitor_requests(request, call_next):
+    request_count.inc()
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    duration = time.time() - start_time
+    request_duration.observe(duration)
+
+    return response</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">七、总结</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    FastAPI 的异步编程能力使其成为构建高并发 API 的理想选择。通过合理使用 async/await、避免阻塞操作、利用连接池和后台任务，可以轻松实现数百甚至上千的并发处理能力。在实际项目中，建议结合性能监控工具，持续优化系统性能。
+                </p>
+            </div>
+
+            <footer class="mt-12 pt-8 border-t border-stone-200">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 text-sm text-stone-500">
+                        <i class="fas fa-tags"></i>
+                        <span>标签: </span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">FastAPI</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">异步编程</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">Python</span>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <nav class="mt-12 pt-8 border-t border-stone-200">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="../blog/2024-12-15-rag-practice.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100">
+                    <p class="text-xs text-stone-400 mb-1">下一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">RAG 实战：从原理到生产部署</p>
+                </a>
+                <a href="../blog/2024-12-05-yolo-improve.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100 text-right">
+                    <p class="text-xs text-stone-400 mb-1">上一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">YOLO 改进实战：自定义 Attention 模块</p>
+                </a>
+            </div>
+        </nav>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">感谢阅读！欢迎留言交流</p>
+            <p class="text-xs text-stone-500">© 2024 熊发展. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+
+</html>

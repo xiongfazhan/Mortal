@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人简历 - 熊发展</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/common.css">
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-12 w-12 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    熊
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-stone-800">熊发展</h1>
+                    <p class="text-sm text-stone-500">算法工程师 (CV / 多模态 / AIGC)</p>
+                </div>
+            </a>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-stone-600">
+                <a href="index.html" class="hover:text-teal-700 transition-colors">首页</a>
+                <a href="blog.html" class="hover:text-teal-700 transition-colors">博客</a>
+                <a href="playground/index.html" class="hover:text-teal-700 transition-colors">趣玩</a>
+                <button onclick="scrollToSection('skills')" class="hover:text-teal-700 transition-colors">技能图谱</button>
+                <button onclick="scrollToSection('projects')" class="hover:text-teal-700 transition-colors">项目实战</button>
+            </nav>
+            <div class="text-right text-xs text-stone-500 hidden sm:block">
+                <p><i class="fas fa-phone mr-1"></i>13419160408</p>
+                <p><i class="fas fa-envelope mr-1"></i>fzx624@qq.com</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-12">
+
+        <!-- Intro Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2 bg-white rounded-xl shadow-sm p-6 border-l-4 border-teal-600">
+                <h2 class="text-2xl font-bold mb-3 text-stone-800">个人概况</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    欢迎查看我的交互式简历。我是一名专注于 <strong>计算机视觉与多模态大模型</strong> 落地的算法工程师。我的核心优势在于"工程化落地能力"——不仅能设计模型，更能通过
+                    <strong>FastAPI + Docker</strong> 实现高并发部署（200+路视频流），并解决工业界实际痛点（如 H.265 兼容、推理成本优化）。
+                </p>
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <span class="px-3 py-1 bg-teal-50 text-teal-700 text-sm rounded-full font-medium border border-teal-100">期望薪资:
+                        14k - 22k</span>
+                    <span class="px-3 py-1 bg-stone-100 text-stone-600 text-sm rounded-full font-medium">成都</span>
+                    <span class="px-3 py-1 bg-stone-100 text-stone-600 text-sm rounded-full font-medium">22岁</span>
+                    <span class="px-3 py-1 bg-stone-100 text-stone-600 text-sm rounded-full font-medium">本科
+                        (人工智能)</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col justify-center items-center text-center">
+                <h3 class="text-lg font-semibold text-stone-700 mb-4">核心竞争力快照</h3>
+                <div class="grid grid-cols-2 gap-4 w-full">
+                    <div class="p-3 bg-stone-50 rounded-lg">
+                        <div class="text-2xl font-bold text-teal-600">87.9%</div>
+                        <div class="text-xs text-stone-500">科研 mAP (优于SOTA)</div>
+                    </div>
+                    <div class="p-3 bg-stone-50 rounded-lg">
+                        <div class="text-2xl font-bold text-teal-600">200+</div>
+                        <div class="text-xs text-stone-500">并发视频流处理</div>
+                    </div>
+                    <div class="p-3 bg-stone-50 rounded-lg">
+                        <div class="text-2xl font-bold text-teal-600">-40%</div>
+                        <div class="text-xs text-stone-500">误报率降低</div>
+                    </div>
+                    <div class="p-3 bg-stone-50 rounded-lg">
+                        <div class="text-2xl font-bold text-teal-600">240</div>
+                        <div class="text-xs text-stone-500">A100 推理 FPS</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Professional DNA / Self Evaluation -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+            <div class="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow border-t-4 border-teal-600">
+                <div class="flex items-center mb-3">
+                    <div class="p-2 bg-teal-50 rounded-lg text-teal-700 mr-3"><i class="fas fa-layer-group"></i></div>
+                    <h3 class="font-bold text-stone-800">技术复合型</h3>
+                </div>
+                <p class="text-sm text-stone-600 leading-relaxed">
+                    兼顾学术研究（SCI 二作）与工程落地，拒绝做"只会调包"的工程师。具备从模型训练到 <strong>Docker + FastAPI</strong> 高并发部署的全链路能力。
+                </p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow border-t-4 border-teal-600">
+                <div class="flex items-center mb-3">
+                    <div class="p-2 bg-teal-50 rounded-lg text-teal-700 mr-3"><i class="fas fa-tools"></i></div>
+                    <h3 class="font-bold text-stone-800">问题解决者</h3>
+                </div>
+                <p class="text-sm text-stone-600 leading-relaxed">
+                    擅长攻克工业痛点。实战解决 <strong>Python GIL 瓶颈</strong>、视频流 <strong>H.265 兼容性</strong> 及多模态长尾误报等复杂问题，具备优秀
+                    Troubleshooting 能力。
+                </p>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow border-t-4 border-teal-600">
+                <div class="flex items-center mb-3">
+                    <div class="p-2 bg-teal-50 rounded-lg text-teal-700 mr-3"><i class="fas fa-rocket"></i></div>
+                    <h3 class="font-bold text-stone-800">自驱力与视野</h3>
+                </div>
+                <p class="text-sm text-stone-600 leading-relaxed">
+                    "自强之星"团队成员，抗压能力强。保持对 <strong>AIGC/多模态</strong> 前沿技术的敏锐度，能快速复现论文并探索业务落地价值。
+                </p>
+            </div>
+        </section>
+
+        <!-- Skills Visualization -->
+        <section id="skills" class="scroll-mt-24">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-stone-800">技能生态图谱</h2>
+                <p class="text-stone-500 text-sm mt-1">
+                    本图表展示了我在不同技术领域的熟练度与投入分布，体现了"算法+工程"双修的特点。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-white rounded-xl shadow-sm p-6">
+                <!-- Chart Container -->
+                <div class="chart-container">
+                    <canvas id="skillRadarChart"></canvas>
+                </div>
+
+                <!-- Skill Detail Lists -->
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-sm font-bold text-teal-700 uppercase tracking-wide mb-2"><i
+                                class="fas fa-eye mr-2"></i>计算机视觉 (CV)</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">YOLO
+                                v5/v8</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">OpenCV</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">FFmpeg</span>
+                            <span
+                                class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">Attention模块设计</span>
+                            <span
+                                class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">H.265/HEVC</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold text-teal-700 uppercase tracking-wide mb-2"><i
+                                class="fas fa-brain mr-2"></i>多模态 & LLM</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">Qwen-VL</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">RAG
+                                (FAISS)</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">NL2SQL</span>
+                            <span
+                                class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">Prompt
+                                Engineering</span>
+                            <span
+                                class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">LangChain/Agent</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold text-teal-700 uppercase tracking-wide mb-2"><i
+                                class="fas fa-server mr-2"></i>工程架构 & 落地</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">FastAPI
+                                (Async)</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">Docker</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">Linux</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">PyTorch</span>
+                            <span class="px-2 py-1 bg-stone-100 text-stone-700 text-xs rounded border border-stone-200">PostgreSQL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Projects Section -->
+        <section id="projects" class="scroll-mt-24">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-stone-800">项目实战复盘</h2>
+                <p class="text-stone-500 text-sm mt-1">
+                    点击下方项目卡片，查看具体的 <span class="text-teal-600 font-bold">量化成果</span> 与 <span
+                        class="text-teal-600 font-bold">技术实现</span>。这些图表是基于项目真实数据生成的。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Project Navigation (Left) -->
+                <div class="lg:col-span-4 space-y-3">
+                    <button onclick="loadProject(0)" id="btn-proj-0"
+                        class="w-full text-left p-4 rounded-lg bg-white hover:bg-stone-50 border border-transparent hover:border-teal-200 transition-all shadow-sm group proj-btn border-l-4 border-l-teal-600">
+                        <h3 class="font-bold text-stone-800 group-hover:text-teal-700">多模态保安违规检测系统</h3>
+                        <p class="text-xs text-stone-500 mt-1">YOLOv8-Pose + Qwen-VL</p>
+                    </button>
+                    <button onclick="loadProject(1)" id="btn-proj-1"
+                        class="w-full text-left p-4 rounded-lg bg-white hover:bg-stone-50 border border-transparent hover:border-teal-200 transition-all shadow-sm group proj-btn">
+                        <h3 class="font-bold text-stone-800 group-hover:text-teal-700">高性能智能视频分析平台</h3>
+                        <p class="text-xs text-stone-500 mt-1">FastAPI + 200路并发</p>
+                    </button>
+                    <button onclick="loadProject(2)" id="btn-proj-2"
+                        class="w-full text-left p-4 rounded-lg bg-white hover:bg-stone-50 border border-transparent hover:border-teal-200 transition-all shadow-sm group proj-btn">
+                        <h3 class="font-bold text-stone-800 group-hover:text-teal-700">LogicWeaver 业务构建平台</h3>
+                        <p class="text-xs text-stone-500 mt-1">LLM Agent + Prompt Chain</p>
+                    </button>
+                </div>
+
+                <!-- Project Detail View (Right) -->
+                <div class="lg:col-span-8 bg-white rounded-xl shadow-sm p-6 border border-stone-100 min-h-[500px] flex flex-col">
+                    <div id="project-content" class="flex-grow">
+                        <!-- Content injected via JS -->
+                    </div>
+
+                    <!-- Chart Area for Project Metrics -->
+                    <div class="mt-8 pt-6 border-t border-stone-100">
+                        <h4 class="text-sm font-bold text-stone-500 uppercase mb-4">核心指标可视化 (Key Metrics)</h4>
+                        <div class="chart-container">
+                            <canvas id="projectMetricChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Research Section -->
+        <section id="research" class="scroll-mt-24">
+            <div class="bg-gradient-to-br from-stone-800 to-stone-900 rounded-xl text-white p-8 shadow-lg">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold">学术科研成果</h2>
+                        <p class="text-stone-400 text-sm mt-1">Computers, Materials & Continua (CMC) | 第二作者</p>
+                    </div>
+                    <span class="mt-2 md:mt-0 px-3 py-1 bg-teal-600 text-white text-xs rounded-full">SCI 期刊</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-3">基于 MGD-YOLO 的道路缺陷检测</h3>
+                        <p class="text-stone-300 text-sm leading-relaxed mb-4">
+                            针对车载边缘设备算力受限及小目标检测难点，提出了改进版 YOLOv5。独立设计了 <strong>MSDA (多尺度扩张注意力)</strong> 与 <strong>VGAU
+                                (视觉全局注意力上采样)</strong> 模块。
+                        </p>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between border-b border-stone-700 pb-2">
+                                <span class="text-stone-400 text-sm">数据集</span>
+                                <span class="font-mono text-teal-400">TD-RD 公开集</span>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-stone-700 pb-2">
+                                <span class="text-stone-400 text-sm">mAP (精度)</span>
+                                <span class="font-mono text-teal-400">87.9%</span>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-stone-700 pb-2">
+                                <span class="text-stone-400 text-sm">A100 推理速度</span>
+                                <span class="font-mono text-teal-400">240 FPS</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-stone-400 text-sm">Jetson NX 速度</span>
+                                <span class="font-mono text-teal-400">45 FPS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Research Chart -->
+                    <div class="bg-stone-800/50 rounded-lg p-4 backdrop-blur-sm border border-stone-700">
+                        <h4 class="text-xs text-stone-400 uppercase mb-2 text-center">模型性能对比 (mAP vs FPS)</h4>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="researchChart"></canvas>
+                        </div>
+                        <p class="text-center text-xs text-stone-500 mt-2">MGD-YOLO 实现了精度与速度的最佳平衡</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Awards Section -->
+        <section id="awards" class="scroll-mt-24 mb-12">
+            <h2 class="text-2xl font-bold text-stone-800 mb-6">荣誉墙</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card 1 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">国家级铜奖</h3>
+                        <i class="fas fa-trophy text-yellow-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">中国国际大学生创新大赛(2023)</p>
+                    <span class="inline-block mt-3 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded">高教主赛道</span>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">优秀奖</h3>
+                        <i class="fas fa-medal text-yellow-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">NVIDIA SKYHACKATHON</p>
+                    <span class="inline-block mt-3 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded">英伟达开发者大赛</span>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">省级金奖</h3>
+                        <i class="fas fa-award text-blue-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">"建行杯"四川省中国国际大创</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">一等奖</h3>
+                        <i class="fas fa-microchip text-blue-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">AidLux AI应用创新大赛</p>
+                    <span class="inline-block mt-3 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">边缘计算方向</span>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">省级二等奖</h3>
+                        <i class="fas fa-robot text-blue-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">全球校园AI算法精英大赛</p>
+                </div>
+                <!-- Card 6 -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-bold text-stone-800">省级二等奖</h3>
+                        <i class="fas fa-memory text-blue-500"></i>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-1">嵌入式芯片与系统设计竞赛</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h2 class="text-xl font-bold text-white mb-2">熊发展</h2>
+            <p class="text-sm mb-4">期待加入您的团队，共创 AI 未来</p>
+            <div class="flex justify-center space-x-6">
+                <a href="mailto:fzx624@qq.com" class="hover:text-teal-400 transition-colors"><i
+                        class="fas fa-envelope mr-2"></i>fzx624@qq.com</a>
+                <span><i class="fas fa-phone mr-2"></i>13419160408</span>
+                <span><i class="fas fa-map-marker-alt mr-2"></i>成都</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script src="assets/js/common.js"></script>
+    <script>
+        // --- Data Definitions ---
+
+        // Skill Radar Data
+        const skillData = {
+            labels: ['CV 算法理论', '多模态/LLM', '工程架构 (Backend)', '边缘计算/部署', '数据与工具'],
+            datasets: [{
+                label: '能力维度',
+                data: [90, 80, 85, 75, 80],
+                fill: true,
+                backgroundColor: 'rgba(20, 184, 166, 0.2)',
+                borderColor: 'rgb(15, 118, 110)',
+                pointBackgroundColor: 'rgb(15, 118, 110)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(15, 118, 110)'
+            }]
+        };
+
+        // Projects Data
+        const projects = [
+            {
+                title: "多模态保安违规行为检测系统",
+                role: "核心算法开发",
+                tags: ["YOLOv8-Pose", "Qwen-VL", "Faster-Whisper", "状态机"],
+                desc: "针对传统 CV 模型在长尾场景（如睡岗、吃东西）误报率高的问题，设计了'CV + 多模态大模型'的级联架构。",
+                details: [
+                    "<strong>二次判官架构:</strong> YOLO 初筛疑似违规，触发 Qwen-VL 进行二次逻辑验证。",
+                    "<strong>成本优化:</strong> 设计智能帧采样策略，根据置信度动态调整 LLM 调用频率，降低 50% 算力成本。",
+                    "<strong>多模态融合:</strong> 结合 YOLOv8-Pose 关键点与音频检测，实现视听双重监管。"
+                ],
+                chartType: 'bar',
+                chartData: {
+                    labels: ['原始误报率', '优化后误报率', '原始算力成本', '优化后算力成本'],
+                    datasets: [{
+                        label: '性能指标对比',
+                        data: [30, 18, 100, 50],
+                        backgroundColor: [
+                            'rgba(168, 162, 158, 0.5)',
+                            'rgba(15, 118, 110, 0.8)',
+                            'rgba(168, 162, 158, 0.5)',
+                            'rgba(15, 118, 110, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                chartOptions: {
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    let label = context.dataset.label || '';
+                                    if (context.dataIndex === 0 || context.dataIndex === 1) return `误报率: ${context.raw}%`;
+                                    if (context.dataIndex === 2 || context.dataIndex === 3) return `相对成本: ${context.raw}%`;
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '百分比 (%)' } }
+                    }
+                }
+            },
+            {
+                title: "高性能智能视频分析平台",
+                role: "算法工程化负责人",
+                tags: ["FastAPI", "OpenCV", "RAG", "NL2SQL", "PostgreSQL"],
+                desc: "构建支持 200+ 路并发视频流的统一底座，解决 H.265 编码兼容与自然语言检索难题。",
+                details: [
+                    "<strong>高并发架构:</strong> 基于 FastAPI 异步编程，利用回调机制解决大规模 RTSP 流资源堆积。",
+                    "<strong>兼容性策略:</strong> 设计'OpenCV -> FFmpeg'多级回退策略，确保 H.265 视频流 100% 接入。",
+                    "<strong>语义检索:</strong> 基于 GLM-4 实现 Text-to-SQL，结合 FAISS 实现画面语义搜索（如'搜红衣人'），效率提升 5 倍。"
+                ],
+                chartType: 'bar',
+                chartData: {
+                    labels: ['单节点并发路数', '查询效率提升倍数'],
+                    datasets: [{
+                        label: '系统性能',
+                        data: [200, 5],
+                        backgroundColor: ['rgba(15, 118, 110, 0.8)', 'rgba(234, 179, 8, 0.8)'],
+                    }]
+                },
+                chartOptions: {
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            },
+            {
+                title: "LogicWeaver 业务逻辑构建平台",
+                role: "后端与算法开发",
+                tags: ["LLM Agent", "Prompt Engineering", "AST"],
+                desc: "为视频检测系统提供底层的 Agent 编排与逻辑推理能力支持。",
+                details: [
+                    "<strong>Agent 架构:</strong> 设计'教-译-筑'三层架构，自动化生成数据契约。",
+                    "<strong>Prompt Chain:</strong> 使用上下文感知提示链，让 LLM 准确理解复杂业务逻辑。",
+                    "<strong>底层支撑:</strong> 作为基础服务层，支撑上层应用的逻辑推理需求。"
+                ],
+                chartType: 'doughnut',
+                chartData: {
+                    labels: ['逻辑推理准确率', '人工配置时间节省'],
+                    datasets: [{
+                        data: [85, 60],
+                        backgroundColor: ['rgba(15, 118, 110, 0.8)', 'rgba(20, 184, 166, 0.5)'],
+                    }]
+                },
+                chartOptions: {
+                    plugins: {
+                        title: { display: true, text: '平台效能估算' }
+                    }
+                }
+            }
+        ];
+
+        // Research Data
+        const researchData = {
+            labels: ['YOLOv9-s', 'RT-DETR', 'MGD-YOLO (Mine)'],
+            datasets: [
+                {
+                    label: 'mAP (%)',
+                    data: [84.5, 86.2, 87.9],
+                    backgroundColor: 'rgba(15, 118, 110, 0.8)',
+                    yAxisID: 'y',
+                    type: 'bar',
+                    order: 2
+                },
+                {
+                    label: 'FPS (A100)',
+                    data: [210, 180, 240],
+                    borderColor: 'rgba(234, 179, 8, 1)',
+                    backgroundColor: 'rgba(234, 179, 8, 1)',
+                    type: 'line',
+                    yAxisID: 'y1',
+                    order: 1
+                }
+            ]
+        };
+
+        // --- Initialization & Functions ---
+
+        let skillChartInstance = null;
+        let projectChartInstance = null;
+        let researchChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initSkillChart();
+            initResearchChart();
+            loadProject(0);
+        });
+
+        function initSkillChart() {
+            const ctx = document.getElementById('skillRadarChart').getContext('2d');
+            skillChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: skillData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e5e7eb' },
+                            grid: { color: '#e5e7eb' },
+                            pointLabels: {
+                                font: { size: 12, family: "'Noto Sans SC', sans-serif" },
+                                color: '#44403c'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: { stepSize: 20, display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function initResearchChart() {
+            const ctx = document.getElementById('researchChart').getContext('2d');
+            researchChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: researchData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.raw + (context.datasetIndex === 0 ? '%' : '');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'mAP (%)' },
+                            min: 80
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'FPS' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadProject(index) {
+            const project = projects[index];
+
+            // 1. Update UI Buttons
+            document.querySelectorAll('.proj-btn').forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('border-l-teal-600', 'bg-stone-50');
+                    btn.classList.remove('border-transparent', 'bg-white');
+                } else {
+                    btn.classList.remove('border-l-teal-600', 'bg-stone-50');
+                    btn.classList.add('border-transparent', 'bg-white');
+                }
+            });
+
+            // 2. Update Content
+            const contentDiv = document.getElementById('project-content');
+
+            const tagsHtml = project.tags.map(tag =>
+                `<span class="inline-block px-2 py-1 bg-stone-100 text-teal-800 text-xs font-medium rounded mr-2 mb-2 border border-stone-200">${tag}</span>`
+            ).join('');
+
+            const detailsHtml = project.details.map(detail =>
+                `<li class="flex items-start mb-2"><i class="fas fa-check text-teal-500 mt-1 mr-2 flex-shrink-0"></i><span class="text-sm text-stone-600">${detail}</span></li>`
+            ).join('');
+
+            contentDiv.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-xl font-bold text-stone-800">${project.title}</h3>
+                    </div>
+                    <p class="text-sm font-semibold text-teal-700 mb-4">${project.role}</p>
+                    <div class="mb-4">${tagsHtml}</div>
+                    <p class="text-stone-600 text-sm mb-6 bg-stone-50 p-3 rounded border border-stone-100 italic">"${project.desc}"</p>
+                    <ul class="space-y-1 mb-6">
+                        ${detailsHtml}
+                    </ul>
+                </div>
+            `;
+
+            // 3. Update Chart
+            updateProjectChart(project);
+        }
+
+        function updateProjectChart(project) {
+            const ctx = document.getElementById('projectMetricChart').getContext('2d');
+
+            if (projectChartInstance) {
+                projectChartInstance.destroy();
+            }
+
+            let options = project.chartOptions || { responsive: true, maintainAspectRatio: false };
+            if (!options.responsive) {
+                options.responsive = true;
+                options.maintainAspectRatio = false;
+            }
+
+            projectChartInstance = new Chart(ctx, {
+                type: project.chartType || 'bar',
+                data: project.chartData,
+                options: options
+            });
+        }
+
+    </script>
+</body>
+
+</html>

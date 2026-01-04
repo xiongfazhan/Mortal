@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids 仿生群集模拟 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: #0a0a0f;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 动态极光背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 210, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(240, 147, 251, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(118, 75, 162, 0.1) 0%, transparent 70%);
+            animation: aurora 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes aurora {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        #boidsCanvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(0, 210, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            color: white;
+            z-index: 100;
+            max-width: 320px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .control-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00d2ff, #f093fb);
+            border-radius: 3px;
+        }
+
+        .slider-group {
+            margin: 14px 0;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            cursor: pointer;
+            box-shadow:
+                0 0 10px rgba(0, 210, 255, 0.8),
+                0 0 0 3px rgba(0, 210, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow:
+                0 0 20px rgba(0, 210, 255, 1),
+                0 0 0 5px rgba(0, 210, 255, 0.4);
+        }
+
+        .stats {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(0, 210, 255, 0.3);
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        .key-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 13px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 210, 255, 0.2);
+            z-index: 100;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .key-hint kbd {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.3), rgba(240, 147, 251, 0.3));
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin: 0 4px;
+            border: 1px solid rgba(0, 210, 255, 0.5);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+        }
+
+        .btn-neon {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.3), rgba(240, 147, 251, 0.3));
+            border: 1px solid rgba(0, 210, 255, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-neon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.5), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-neon:hover::before {
+            left: 100%;
+        }
+
+        .btn-neon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.6);
+            border-color: rgba(0, 210, 255, 0.8);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00d2ff;
+            font-size: 20px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 210, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="boidsCanvas"></canvas>
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <div class="control-panel">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+            <i class="fas fa-dove" style="color: #00d2ff;"></i>Boids 参数控制
+        </h3>
+
+        <div class="slider-group">
+            <label>分离权重 <span style="color: #00d2ff;">1.5</span></label>
+            <input type="range" id="separation" min="0" max="3" step="0.1" value="1.5">
+        </div>
+
+        <div class="slider-group">
+            <label>对齐权重 <span style="color: #f093fb;">1.0</span></label>
+            <input type="range" id="alignment" min="0" max="3" step="0.1" value="1.0">
+        </div>
+
+        <div class="slider-group">
+            <label>凝聚权重 <span style="color: #00f2fe;">1.0</span></label>
+            <input type="range" id="cohesion" min="0" max="3" step="0.1" value="1.0">
+        </div>
+
+        <div class="slider-group">
+            <label>视野半径 <span>50px</span></label>
+            <input type="range" id="perception" min="20" max="150" step="5" value="50">
+        </div>
+
+        <div class="slider-group">
+            <label>最大速度 <span>4</span></label>
+            <input type="range" id="maxSpeed" min="2" max="8" step="0.5" value="4">
+        </div>
+
+        <div class="slider-group">
+            <label>个体数量 <span>180</span></label>
+            <input type="range" id="boidCount" min="50" max="350" step="10" value="180">
+        </div>
+
+        <div class="slider-group">
+            <label>拖尾长度 <span>30</span></label>
+            <input type="range" id="trailLength" min="0" max="60" step="5" value="30">
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button onclick="scatterBoids()" class="btn-neon flex-1 px-4 py-2 rounded-lg text-sm font-medium">
+                惊散
+            </button>
+            <button onclick="resetParams()" class="btn-neon flex-1 px-4 py-2 rounded-lg text-sm font-medium">
+                重置
+            </button>
+        </div>
+
+        <div class="stats">
+            <div>FPS: <span id="fps">0</span></div>
+            <div>个体数: <span id="actualCount">180</span></div>
+            <div>鼠标位置: <span id="mousePos">-</span></div>
+        </div>
+    </div>
+
+    <div class="key-hint">
+        <kbd>Space</kbd> 暂停/继续 <kbd>鼠标</kbd> 捕食者模式
+    </div>
+
+    <script>
+        const canvas = document.getElementById('boidsCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let boids = [];
+        let isPaused = false;
+        let mouse = { x: null, y: null, active: false };
+
+        // 参数
+        let params = {
+            separation: 1.5,
+            alignment: 1.0,
+            cohesion: 1.0,
+            perception: 50,
+            maxSpeed: 4,
+            maxForce: 0.2,
+            boidCount: 180,
+            trailLength: 30
+        };
+
+        let fps = 0;
+        let frameCount = 0;
+        let lastTime = 0;
+
+        // 更炫彩的霓虹色方案
+        const colors = [
+            '#00d2ff', '#3a7bd5', '#00c6fb', '#005bea',
+            '#f857a6', '#ff5858', '#fa709a', '#fee140',
+            '#a8edea', '#fed6e3', '#667eea', '#764ba2',
+            '#7F00FF', '#E100FF', '#00D4FF', '#00FF94',
+            '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'
+        ];
+
+        class Boid {
+            constructor() {
+                this.position = {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height
+                };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * params.maxSpeed,
+                    y: (Math.random() - 0.5) * params.maxSpeed
+                };
+                this.acceleration = { x: 0, y: 0 };
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.trail = [];
+                this.glowIntensity = Math.random() * 0.5 + 0.5;
+            }
+
+            edges() {
+                const margin = 50;
+                const turnFactor = 0.5;
+
+                if (this.position.x < margin) {
+                    this.velocity.x += turnFactor;
+                }
+                if (this.position.x > canvas.width - margin) {
+                    this.velocity.x -= turnFactor;
+                }
+                if (this.position.y < margin) {
+                    this.velocity.y += turnFactor;
+                }
+                if (this.position.y > canvas.height - margin) {
+                    this.velocity.y -= turnFactor;
+                }
+            }
+
+            flock(boids) {
+                let separation = { x: 0, y: 0 };
+                let alignment = { x: 0, y: 0 };
+                let cohesion = { x: 0, y: 0 };
+                let total = 0;
+
+                for (let other of boids) {
+                    if (other === this) continue;
+
+                    const dx = other.position.x - this.position.x;
+                    const dy = other.position.y - this.position.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < params.perception && distance > 0) {
+                        // 分离
+                        if (distance < params.perception / 2) {
+                            separation.x -= dx / distance;
+                            separation.y -= dy / distance;
+                        }
+
+                        // 对齐
+                        alignment.x += other.velocity.x;
+                        alignment.y += other.velocity.y;
+
+                        // 凝聚
+                        cohesion.x += other.position.x;
+                        cohesion.y += other.position.y;
+
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    // 对齐平均
+                    alignment.x /= total;
+                    alignment.y /= total;
+                    alignment.x -= this.velocity.x;
+                    alignment.y -= this.velocity.y;
+
+                    // 凝聚平均
+                    cohesion.x /= total;
+                    cohesion.y /= total;
+                    cohesion.x = (cohesion.x - this.position.x) / 100;
+                    cohesion.y = (cohesion.y - this.position.y) / 100;
+                }
+
+                // 鼠标斥力 - 捕食者效果
+                if (mouse.x !== null && mouse.y !== null) {
+                    const dx = mouse.x - this.position.x;
+                    const dy = mouse.y - this.position.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 180) {
+                        const force = (180 - distance) / 180;
+                        separation.x -= (dx / distance) * force * 8;
+                        separation.y -= (dy / distance) * force * 8;
+                    }
+                }
+
+                // 应用权重
+                this.acceleration.x += separation.x * params.separation * 0.05;
+                this.acceleration.y += separation.y * params.separation * 0.05;
+                this.acceleration.x += alignment.x * params.alignment * 0.05;
+                this.acceleration.y += alignment.y * params.alignment * 0.05;
+                this.acceleration.x += cohesion.x * params.cohesion * 0.05;
+                this.acceleration.y += cohesion.y * params.cohesion * 0.05;
+            }
+
+            update() {
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+
+                // 限制速度
+                const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+                if (speed > params.maxSpeed) {
+                    this.velocity.x = (this.velocity.x / speed) * params.maxSpeed;
+                    this.velocity.y = (this.velocity.y / speed) * params.maxSpeed;
+                }
+
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+
+                // 重置加速度
+                this.acceleration.x = 0;
+                this.acceleration.y = 0;
+
+                // 边界处理
+                this.edges();
+
+                // 更新轨迹
+                this.trail.push({ x: this.position.x, y: this.position.y });
+                if (this.trail.length > params.trailLength) {
+                    this.trail.shift();
+                }
+            }
+
+            draw() {
+                // 绘制拖尾 - 霓虹渐变效果
+                if (this.trail.length > 1 && params.trailLength > 0) {
+                    for (let i = 0; i < this.trail.length - 1; i++) {
+                        const alpha = (i / this.trail.length) * 0.6;
+                        const width = (i / this.trail.length) * 2;
+                        ctx.beginPath();
+                        ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                        ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+                        ctx.strokeStyle = this.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+                        ctx.lineWidth = width;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                    }
+                }
+
+                // 计算旋转角度
+                const angle = Math.atan2(this.velocity.y, this.velocity.x);
+
+                ctx.save();
+                ctx.translate(this.position.x, this.position.y);
+                ctx.rotate(angle);
+
+                // 绘制三角形 - 增强霓虹效果
+                ctx.beginPath();
+                ctx.moveTo(9, 0);
+                ctx.lineTo(-6, 5);
+                ctx.lineTo(-6, -5);
+                ctx.closePath();
+
+                // 多层发光效果
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 15 * this.glowIntensity;
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                // 内部高光
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.moveTo(7, 0);
+                ctx.lineTo(-4, 3);
+                ctx.lineTo(-4, -3);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            boids = [];
+            for (let i = 0; i < params.boidCount; i++) {
+                boids.push(new Boid());
+            }
+
+            document.getElementById('actualCount').textContent = boids.length;
+        }
+
+        function animate(currentTime) {
+            // FPS 计算
+            frameCount++;
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fps').textContent = fps;
+            }
+
+            // 清空画布（带拖尾效果）
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (!isPaused) {
+                // 更新和绘制 boids
+                boids.forEach(boid => {
+                    boid.flock(boids);
+                    boid.update();
+                    boid.draw();
+                });
+            } else {
+                // 暂停时只绘制
+                boids.forEach(boid => boid.draw());
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function scatterBoids() {
+            boids.forEach(boid => {
+                const angle = Math.random() * Math.PI * 2;
+                const force = 12;
+                boid.velocity.x += Math.cos(angle) * force;
+                boid.velocity.y += Math.sin(angle) * force;
+            });
+        }
+
+        function resetParams() {
+            document.getElementById('separation').value = 1.5;
+            document.getElementById('alignment').value = 1.0;
+            document.getElementById('cohesion').value = 1.0;
+            document.getElementById('perception').value = 50;
+            document.getElementById('maxSpeed').value = 4;
+            document.getElementById('boidCount').value = 180;
+            document.getElementById('trailLength').value = 30;
+
+            updateAllParams();
+        }
+
+        function updateAllParams() {
+            params.separation = parseFloat(document.getElementById('separation').value);
+            params.alignment = parseFloat(document.getElementById('alignment').value);
+            params.cohesion = parseFloat(document.getElementById('cohesion').value);
+            params.perception = parseInt(document.getElementById('perception').value);
+            params.maxSpeed = parseFloat(document.getElementById('maxSpeed').value);
+            params.trailLength = parseInt(document.getElementById('trailLength').value);
+        }
+
+        // 事件监听
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            document.getElementById('mousePos').textContent = `${Math.round(mouse.x)}, ${Math.round(mouse.y)}`;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+            document.getElementById('mousePos').textContent = '-';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                isPaused = !isPaused;
+            }
+        });
+
+        // 控制面板事件
+        document.getElementById('separation').addEventListener('input', (e) => {
+            params.separation = parseFloat(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.separation.toFixed(1);
+        });
+
+        document.getElementById('alignment').addEventListener('input', (e) => {
+            params.alignment = parseFloat(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.alignment.toFixed(1);
+        });
+
+        document.getElementById('cohesion').addEventListener('input', (e) => {
+            params.cohesion = parseFloat(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.cohesion.toFixed(1);
+        });
+
+        document.getElementById('perception').addEventListener('input', (e) => {
+            params.perception = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.perception + 'px';
+        });
+
+        document.getElementById('maxSpeed').addEventListener('input', (e) => {
+            params.maxSpeed = parseFloat(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.maxSpeed;
+        });
+
+        document.getElementById('boidCount').addEventListener('input', (e) => {
+            const newCount = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = newCount;
+
+            // 调整 boid 数量
+            while (boids.length < newCount) {
+                boids.push(new Boid());
+            }
+            while (boids.length > newCount) {
+                boids.pop();
+            }
+
+            params.boidCount = newCount;
+            document.getElementById('actualCount').textContent = boids.length;
+        });
+
+        document.getElementById('trailLength').addEventListener('input', (e) => {
+            params.trailLength = parseInt(e.target.value);
+            e.target.previousElementSibling.lastChild.textContent = params.trailLength;
+            boids.forEach(b => b.trail = []);
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 初始化
+        init();
+        animate(0);
+    </script>
+</body>
+</html>

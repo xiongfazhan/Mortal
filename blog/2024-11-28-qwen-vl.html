@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen-VL 多模态应用实战 - 熊发展的技术博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-10 w-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                    熊
+                </div>
+                <span class="font-bold text-stone-800">返回首页</span>
+            </a>
+            <a href="../blog.html" class="text-sm text-stone-600 hover:text-teal-700 transition-colors">
+                <i class="fas fa-arrow-left mr-1"></i>返回博客列表
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <article>
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded">LLM / 多模态</span>
+                    <span class="text-sm text-stone-400">2024-11-28</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">Qwen-VL 多模态应用实战</h1>
+                <p class="text-lg text-stone-600">如何用视觉大模型解决 CV 长尾误报问题？CV + LLM 级联架构设计分享。</p>
+            </header>
+
+            <div class="prose prose-stone max-w-none">
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">一、问题背景</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    在保安违规行为检测项目中，我们遇到了一个棘手问题：传统 CV 模型（YOLO）在<strong>长尾场景</strong>下误报率高达 30%。这些场景包括：
+                </p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li>姿态相似的正常行为（如低头看手机 vs 低头看书）</li>
+                    <li>复杂光照和遮挡情况</li>
+                    <li>边界模糊的行为（如打哈欠 vs 睡岗）</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">二、解决方案：CV + LLM 级联架构</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.1 架构设计</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">采用"二次判官"架构：YOLO 初筛 + Qwen-VL 复核</p>
+
+                <div class="bg-stone-100 rounded-lg p-6 my-6">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm text-center flex-1 min-w-[150px]">
+                            <div class="text-2xl mb-2">📷</div>
+                            <p class="font-semibold">视频帧</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-stone-400"></i>
+                        <div class="bg-teal-50 p-4 rounded-lg shadow-sm text-center flex-1 min-w-[150px] border-2 border-teal-500">
+                            <div class="text-2xl mb-2">🔍</div>
+                            <p class="font-semibold text-teal-700">YOLO 检测</p>
+                            <p class="text-xs text-stone-500">疑似违规</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-stone-400"></i>
+                        <div class="bg-blue-50 p-4 rounded-lg shadow-sm text-center flex-1 min-w-[150px] border-2 border-blue-500">
+                            <div class="text-2xl mb-2">🧠</div>
+                            <p class="font-semibold text-blue-700">Qwen-VL 分析</p>
+                            <p class="text-xs text-stone-500">逻辑验证</p>
+                        </div>
+                        <i class="fas fa-arrow-right text-stone-400"></i>
+                        <div class="bg-green-50 p-4 rounded-lg shadow-sm text-center flex-1 min-w-[150px]">
+                            <div class="text-2xl mb-2">✅</div>
+                            <p class="font-semibold text-green-700">最终判决</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.2 Qwen-VL 简介</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    Qwen-VL 是阿里云通义千问推出的视觉语言大模型，支持：
+                </p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li>多图输入与对话</li>
+                    <li>细粒度视觉理解</li>
+                    <li>中文场景优化</li>
+                    <li>开放的 API 调用</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">三、代码实现</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.1 集成 Qwen-VL API</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import dashscope
+from dashscope import MultiModalConversation
+
+class QwenVLVerifier:
+    def __init__(self, api_key: str):
+        dashscope.api_key = api_key
+
+    def verify_violation(self, image_path: str, detection: dict) -> dict:
+        """
+        使用 Qwen-VL 验证检测结果
+
+        Args:
+            image_path: 图片路径
+            detection: YOLO 检测结果 {
+                'class': 'sleeping',
+                'confidence': 0.85,
+                'bbox': [x, y, w, h]
+            }
+
+        Returns:
+            验证结果 {
+                'is_violation': bool,
+                'reason': str,
+                'confidence': float
+            }
+        """
+        # 构建验证 Prompt
+        prompt = self._build_verify_prompt(detection)
+
+        # 调用 Qwen-VL API
+        response = MultiModalConversation.call(
+            model='qwen-vl-max',
+            messages=[
+                {
+                    'role': 'user',
+                    'content': [
+                        {'image': f'file://{image_path}'},
+                        {'text': prompt}
+                    ]
+                }
+            ]
+        )
+
+        # 解析响应
+        return self._parse_response(response)
+
+    def _build_verify_prompt(self, detection: dict) -> str:
+        """根据检测结果构建验证 Prompt"""
+        class_name = detection['class']
+        conf = detection['confidence']
+
+        prompt = f"""这是一张保安监控场景的图片。YOLO 模型检测到可能存在"{class_name}"行为（置信度 {conf:.2f}）。
+
+请仔细分析图片中人物的行为，判断这是否真的是违规行为。
+
+判断标准：
+1. 睡岗：闭眼、头部持续低垂、身体摇晃等
+2. 玩手机：手持设备、持续低头看屏幕
+3. 离岗：保安亭内无人
+
+注意事项：
+- 低头看书 ≠ 玩手机
+- 打哈欠 ≠ 睡岗
+- 暂时离开 ≠ 离岗
+
+请按以下格式回答：
+判断结果：[是/否]违规
+原因：[详细说明]
+置信度：[0-1之间的数值]"""
+
+        return prompt
+
+    def _parse_response(self, response) -> dict:
+        """解析 Qwen-VL 响应"""
+        if response.status_code != 200:
+            return {'is_violation': False, 'reason': 'API调用失败', 'confidence': 0}
+
+        content = response.output.choices[0].message.content[0]['text']
+
+        # 简单解析（实际项目中可用更复杂的规则或 LLM 再解析）
+        is_violation = '是违规' in content or '判定为违规' in content
+
+        # 提取置信度（简化版）
+        import re
+        conf_match = re.search(r'置信度[：:]\s*([\d.]+)', content)
+        confidence = float(conf_match.group(1)) if conf_match else 0.5
+
+        return {
+            'is_violation': is_violation,
+            'reason': content,
+            'confidence': confidence
+        }</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.2 完整检测流程</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import cv2
+from ultralytics import YOLO
+
+class CascadeDetectionSystem:
+    def __init__(self, yolo_path: str, qwen_api_key: str):
+        # 加载 YOLO 模型
+        self.yolo = YOLO(yolo_path)
+
+        # 初始化 Qwen-VL 验证器
+        self.verifier = QwenVLVerifier(qwen_api_key)
+
+        # 统计信息
+        self.stats = {
+            'total': 0,
+            'yolo_positive': 0,
+            'llm_verified': 0,
+            'final_positive': 0
+        }
+
+    def process_frame(self, frame: np.ndarray, frame_id: int) -> list:
+        """处理单帧图像"""
+        self.stats['total'] += 1
+
+        # 1. YOLO 初筛
+        detections = self.yolo(frame)
+        violations = []
+
+        for det in detections:
+            # 只处理疑似违规的检测结果
+            if det.conf < 0.5:  # 置信度阈值
+                continue
+
+            self.stats['yolo_positive'] += 1
+
+            # 2. 保存 crops 供 LLM 分析
+            crop_path = f'temp/{frame_id}_{det.conf:.2f}.jpg'
+            self._save_crop(frame, det.boxes, crop_path)
+
+            # 3. Qwen-VL 二次验证
+            result = self.verifier.verify_violation(
+                crop_path,
+                {'class': det.cls, 'confidence': det.conf}
+            )
+
+            self.stats['llm_verified'] += 1
+
+            # 4. 最终判决
+            if result['is_violation'] and result['confidence'] > 0.7:
+                violations.append({
+                    'class': det.cls,
+                    'bbox': det.boxes,
+                    'yolo_conf': det.conf,
+                    'llm_reason': result['reason']
+                })
+                self.stats['final_positive'] += 1
+
+        return violations
+
+    def _save_crop(self, frame, box, save_path: str):
+        """保存检测框内的图像"""
+        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+        crop = frame[y1:y2, x1:x2]
+        cv2.imwrite(save_path, crop)
+
+    def get_report(self) -> dict:
+        """生成检测报告"""
+        yolo_far = self.stats['yolo_positive'] - self.stats['final_positive']
+        far_rate = yolo_far / self.stats['yolo_positive'] if self.stats['yolo_positive'] > 0 else 0
+
+        return {
+            'total_frames': self.stats['total'],
+            'yolo_positive': self.stats['yolo_positive'],
+            'final_violations': self.stats['final_positive'],
+            'false_alarm_reduced': yolo_far,
+            'far_reduction_rate': f'{far_rate * 100:.1f}%'
+        }</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">四、成本优化策略</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.1 智能采样</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">并非所有疑似违规都需要 LLM 验证：</p>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">def smart_sampling(detection: dict) -> bool:
+    """智能判断是否需要 LLM 验证"""
+    # 高置信度直接通过
+    if detection['confidence'] > 0.95:
+        return False
+
+    # 低置信度直接过滤
+    if detection['confidence'] < 0.4:
+        return False
+
+    # 中置信度 + 特定类别需要验证
+    if detection['confidence'] > 0.7:
+        # 边界清晰的类别不需要验证
+        clear_classes = ['cell_phone', 'absent']
+        if detection['class'] in clear_classes:
+            return False
+
+    return True</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.2 帧级策略</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>时间窗口聚合</strong>：连续 3 帧都触发才验证</li>
+                    <li><strong>间隔采样</strong>：每 5 帧验证一次，中间用插值</li>
+                    <li><strong>缓存复用</strong>：相似场景不重复验证</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">五、实验效果</h2>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 my-6 border border-stone-200">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-2">指标</th>
+                                <th class="text-left py-2">仅 YOLO</th>
+                                <th class="text-left py-2">YOLO + Qwen-VL</th>
+                                <th class="text-left py-2">提升</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="py-2">误报率</td>
+                                <td class="py-2">30%</td>
+                                <td class="py-2 text-teal-700 font-bold">18%</td>
+                                <td class="py-2 text-green-600">-40%</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2">API 调用次数</td>
+                                <td class="py-2">-</td>
+                                <td class="py-2">~500/小时</td>
+                                <td class="py-2">-</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2">推理成本</td>
+                                <td class="py-2">$0</td>
+                                <td class="py-2">~$50/天</td>
+                                <td class="py-2">-</td>
+                            </tr>
+                            <tr class="bg-teal-50">
+                                <td class="py-2">处理延迟</td>
+                                <td class="py-2">50ms</td>
+                                <td class="py-2">2.5s</td>
+                                <td class="py-2">+50x</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">六、总结与展望</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    通过 CV + LLM 级联架构，我们成功将误报率降低了 40%，证明了多模态大模型在工业 CV 应用中的价值。关键启示：
+                </p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>优势互补</strong>：CV 负责快速筛选，LLM 负责精细判断</li>
+                    <li><strong>成本可控</strong>：通过智能采样将 API 调用降低 50%</li>
+                    <li><strong>持续优化</strong>：Prompt 工程和采样策略仍有提升空间</li>
+                </ul>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    未来可以探索更轻量的视觉语言模型（如 MiniGPT-4），进一步降低延迟和成本。
+                </p>
+            </div>
+
+            <footer class="mt-12 pt-8 border-t border-stone-200">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 text-sm text-stone-500">
+                        <i class="fas fa-tags"></i>
+                        <span>标签: </span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">Qwen-VL</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">多模态</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">YOLO</span>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <nav class="mt-12 pt-8 border-t border-stone-200">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="../blog/2024-12-05-yolo-improve.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100">
+                    <p class="text-xs text-stone-400 mb-1">下一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">YOLO 改进实战：自定义 Attention 模块</p>
+                </a>
+                <a href="../blog/2024-11-20-docker-deploy.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100 text-right">
+                    <p class="text-xs text-stone-400 mb-1">上一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">Docker 部署深度学习模型最佳实践</p>
+                </a>
+            </div>
+        </nav>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">感谢阅读！欢迎留言交流</p>
+            <p class="text-xs text-stone-500">© 2024 熊发展. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+
+</html>

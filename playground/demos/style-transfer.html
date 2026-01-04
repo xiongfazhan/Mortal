@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像风格迁移 - Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/common.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #feca57 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 动态艺术背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(102, 126, 234, 0.3) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(240, 147, 251, 0.3) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(254, 202, 87, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.2) 0%, transparent 40%);
+            animation: artisticBg 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes artisticBg {
+            0%, 100% { opacity: 0.8; transform: scale(1) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.1) rotate(3deg); }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                0 8px 32px rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .image-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            transition: transform 0.5s ease;
+        }
+
+        .image-container:hover img {
+            transform: scale(1.05);
+        }
+
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #f093fb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(240, 147, 251, 0.5);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .style-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .style-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .style-card.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(240, 147, 251, 0.8);
+        }
+
+        .style-card.selected .style-icon {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(240, 147, 251, 0.6);
+            box-shadow: 0 0 30px rgba(240, 147, 251, 0.3);
+        }
+
+        .upload-area.drag-over {
+            background: rgba(240, 147, 251, 0.2);
+            border-color: #f093fb;
+            box-shadow: 0 0 40px rgba(240, 147, 251, 0.5);
+        }
+
+        /* 生成按钮 */
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            background-size: 200% 200%;
+            animation: gradientMove 3s ease infinite;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.7);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* 操作按钮 */
+        .action-btn {
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 预览区域 */
+        .preview-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1) rotate(-5deg);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        h1, h3, h4, label, p, li {
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 原理卡片 */
+        .principle-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .principle-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .principle-icon {
+            box-shadow: 0 0 20px currentColor;
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <a href="../index.html" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity" style="color: white;">
+                <i class="fas fa-arrow-left"></i>
+                <span class="font-bold">返回趣玩</span>
+            </a>
+            <a href="../../index.html" style="color: white;" class="hover:opacity-80 transition-opacity">
+                <i class="fas fa-home mr-1"></i>首页
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- Demo Header -->
+        <section class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2">
+                <i class="fas fa-palette mr-2" style="color: #f093fb;"></i>图像风格迁移
+            </h1>
+            <p class="opacity-90">体验 AI 魔法，将你的照片转换成不同艺术风格！（Demo 版本使用预设效果图）</p>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="glass-card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-upload mr-2"></i>第一步：上传图片</h3>
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Upload Area -->
+                <div class="flex-1">
+                    <div
+                        id="uploadArea"
+                        class="upload-area rounded-xl p-8 text-center cursor-pointer"
+                        onclick="document.getElementById('fileInput').click()"
+                    >
+                        <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                        <i class="fas fa-cloud-upload-alt text-5xl mb-4" style="color: rgba(255, 255, 255, 0.7);"></i>
+                        <p class="mb-2">点击上传或拖拽图片到此处</p>
+                        <p class="text-sm opacity-70">支持 JPG、PNG 格式，建议尺寸不超过 2MB</p>
+                    </div>
+                </div>
+
+                <!-- Preview -->
+                <div class="flex-1">
+                    <p class="text-sm opacity-80 mb-2">原始图片</p>
+                    <div id="originalPreview" class="preview-box aspect-square rounded-xl flex items-center justify-center">
+                        <i class="fas fa-image text-6xl opacity-40"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Style Selection -->
+        <section class="glass-card rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-paint-brush mr-2"></i>第二步：选择艺术风格</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'van-gogh')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-sun text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">梵高星空</p>
+                    <p class="text-xs opacity-70 text-center">Starry Night</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'monet')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-water text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">莫奈睡莲</p>
+                    <p class="text-xs opacity-70 text-center">Water Lilies</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'picasso')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-shapes text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">毕加索立体</p>
+                    <p class="text-xs opacity-70 text-center">Cubism</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'kandinsky')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-red-400 via-yellow-400 to-blue-500 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-circle-nodes text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">康定斯基</p>
+                    <p class="text-xs opacity-70 text-center">Abstract</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'ukiyo-e')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-pink-400 to-red-500 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-fan text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">浮世绘</p>
+                    <p class="text-xs opacity-70 text-center">Ukiyo-e</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'pop-art')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-cyan-400 to-yellow-400 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-star text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">波普艺术</p>
+                    <p class="text-xs opacity-70 text-center">Pop Art</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'cyberpunk')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-purple-600 to-cyan-400 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-microchip text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">赛博朋克</p>
+                    <p class="text-xs opacity-70 text-center">Cyberpunk</p>
+                </div>
+
+                <div class="style-card rounded-xl p-3" onclick="selectStyle(this, 'sketch')">
+                    <div class="style-icon aspect-square rounded-lg bg-gradient-to-br from-stone-400 to-stone-600 flex items-center justify-center mb-2 shadow-lg">
+                        <i class="fas fa-pencil-alt text-white text-3xl"></i>
+                    </div>
+                    <p class="text-center font-medium">铅笔素描</p>
+                    <p class="text-xs opacity-70 text-center">Sketch</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Generate Button -->
+        <section class="text-center mb-6">
+            <button
+                id="generateBtn"
+                onclick="generateArt()"
+                class="generate-btn px-8 py-4 text-white text-lg font-semibold rounded-xl"
+                disabled
+            >
+                <i class="fas fa-magic mr-2"></i>生成艺术作品
+            </button>
+        </section>
+
+        <!-- Result Section -->
+        <section id="resultSection" class="hidden">
+            <div class="glass-card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4"><i class="fas fa-star mr-2"></i>第三步：欣赏你的杰作</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Original -->
+                    <div>
+                        <p class="text-sm opacity-80 mb-2">原始图片</p>
+                        <div id="resultOriginal" class="image-container preview-box aspect-square rounded-xl overflow-hidden">
+                            <img id="resultOriginalImg" src="" alt="Original" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+
+                    <!-- Styled -->
+                    <div>
+                        <p class="text-sm opacity-80 mb-2">风格化结果</p>
+                        <div id="resultStyled" class="image-container preview-box aspect-square rounded-xl overflow-hidden relative">
+                            <div id="processingOverlay" class="processing-overlay hidden">
+                                <div class="text-center">
+                                    <div class="loader mx-auto mb-4"></div>
+                                    <p>AI 正在创作中...</p>
+                                    <p class="text-sm opacity-75">预计需要 3-5 秒</p>
+                                </div>
+                            </div>
+                            <img id="resultStyledImg" src="" alt="Styled" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-4 mt-6 justify-center">
+                    <button onclick="downloadImage()" class="action-btn px-6 py-3 rounded-lg" style="background: linear-gradient(135deg, #00d2ff, #00f5d4);">
+                        <i class="fas fa-download mr-2"></i>下载图片
+                    </button>
+                    <button onclick="resetDemo()" class="action-btn px-6 py-3 rounded-lg" style="background: rgba(100, 100, 100, 0.5);">
+                        <i class="fas fa-redo mr-2"></i>重新开始
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it Works -->
+        <section class="mt-8 glass-card rounded-xl p-8">
+            <h3 class="text-xl font-bold mb-6"><i class="fas fa-lightbulb mr-2"></i>风格迁移原理</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="principle-card rounded-xl p-6 text-center">
+                    <div class="principle-icon w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center mx-auto mb-4" style="color: #f093fb;">
+                        <i class="fas fa-image text-2xl"></i>
+                    </div>
+                    <h4 class="font-semibold mb-2">内容提取</h4>
+                    <p class="text-sm opacity-80">使用卷积神经网络提取原始图片的内容特征</p>
+                </div>
+                <div class="principle-card rounded-xl p-6 text-center">
+                    <div class="principle-icon w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4" style="color: #feca57;">
+                        <i class="fas fa-palette text-2xl"></i>
+                    </div>
+                    <h4 class="font-semibold mb-2">风格分析</h4>
+                    <p class="text-sm opacity-80">提取艺术画的纹理、色彩、笔触等风格特征</p>
+                </div>
+                <div class="principle-card rounded-xl p-6 text-center">
+                    <div class="principle-icon w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4" style="color: #00f5d4;">
+                        <i class="fas fa-wand-magic-sparkles text-2xl"></i>
+                    </div>
+                    <h4 class="font-semibold mb-2">风格融合</h4>
+                    <p class="text-sm opacity-80">将风格特征应用到内容图片，生成新作品</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="background: rgba(15, 12, 41, 0.8);" class="py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm opacity-80">Demo 版本 - 使用 PyTorch + FastAPI 可构建真实服务</p>
+        </div>
+    </footer>
+
+    <script>
+        let selectedStyle = null;
+        let uploadedImage = null;
+
+        // 预设风格效果图（使用渐变模拟）
+        const styleEffects = {
+            'van-gogh': 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+            'monet': 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            'picasso': 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+            'kandinsky': 'linear-gradient(135deg, #ff6b6b 0%, #feca57 25%, #48dbfb 50%, #ff9ff3 75%, #54a0ff 100%)',
+            'ukiyo-e': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'pop-art': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+            'cyberpunk': 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            'sketch': 'linear-gradient(135deg, #434343 0%, #000000 100%)'
+        };
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage = e.target.result;
+
+                // 更新预览
+                const preview = document.getElementById('originalPreview');
+                preview.innerHTML = `<img src="${uploadedImage}" alt="Preview" class="w-full h-full object-cover">`;
+
+                // 更新结果区域原图
+                document.getElementById('resultOriginalImg').src = uploadedImage;
+
+                // 启用生成按钮
+                checkCanGenerate();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function selectStyle(element, style) {
+            // 移除之前的选择
+            document.querySelectorAll('.style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // 添加新选择
+            element.classList.add('selected');
+            selectedStyle = style;
+
+            checkCanGenerate();
+        }
+
+        function checkCanGenerate() {
+            const btn = document.getElementById('generateBtn');
+            if (uploadedImage && selectedStyle) {
+                btn.disabled = false;
+            }
+        }
+
+        function generateArt() {
+            if (!uploadedImage || !selectedStyle) return;
+
+            // 显示结果区域
+            document.getElementById('resultSection').classList.remove('hidden');
+
+            // 显示处理中
+            document.getElementById('processingOverlay').classList.remove('hidden');
+
+            // 模拟处理延迟
+            setTimeout(() => {
+                // 隐藏处理中
+                document.getElementById('processingOverlay').classList.add('hidden');
+
+                // 应用风格效果（Demo 版本使用 CSS 渐变模拟）
+                const styledImg = document.getElementById('resultStyledImg');
+                styledImg.src = uploadedImage;
+                styledImg.style.filter = 'contrast(1.2) saturate(1.3)';
+                styledImg.parentElement.style.background = styleEffects[selectedStyle];
+
+                // 滚动到结果
+                document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+            }, 3000);
+        }
+
+        function downloadImage() {
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.download = `styled-image-${selectedStyle}.png`;
+            link.href = uploadedImage;
+            link.click();
+
+            alert('Demo 版本：实际应用中会下载真正的风格化图片！');
+        }
+
+        function resetDemo() {
+            // 重置所有状态
+            selectedStyle = null;
+            uploadedImage = null;
+
+            // 重置界面
+            document.getElementById('uploadArea').innerHTML = `
+                <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                <i class="fas fa-cloud-upload-alt text-5xl mb-4" style="color: rgba(255, 255, 255, 0.7);"></i>
+                <p class="mb-2">点击上传或拖拽图片到此处</p>
+                <p class="text-sm opacity-70">支持 JPG、PNG 格式，建议尺寸不超过 2MB</p>
+            `;
+
+            document.getElementById('originalPreview').innerHTML = '<i class="fas fa-image text-6xl opacity-40"></i>';
+
+            document.querySelectorAll('.style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('generateBtn').disabled = true;
+        }
+
+        // 拖拽上传支持
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadArea = document.getElementById('uploadArea');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const event = { target: { files: [file] } };
+                    handleFileSelect(event);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

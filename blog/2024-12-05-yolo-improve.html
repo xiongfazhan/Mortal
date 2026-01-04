@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO 改进实战：自定义 Attention 模块 - 熊发展的技术博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-10 w-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                    熊
+                </div>
+                <span class="font-bold text-stone-800">返回首页</span>
+            </a>
+            <a href="../blog.html" class="text-sm text-stone-600 hover:text-teal-700 transition-colors">
+                <i class="fas fa-arrow-left mr-1"></i>返回博客列表
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <article>
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-teal-50 text-teal-700 text-sm rounded">计算机视觉</span>
+                    <span class="text-sm text-stone-400">2024-12-05</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">YOLO 改进实战：自定义 Attention 模块</h1>
+                <p class="text-lg text-stone-600">从 MSDA 到 VGAU，分享我在 MGD-YOLO 中的模块设计经验与性能优化技巧。</p>
+            </header>
+
+            <div class="prose prose-stone max-w-none">
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">一、背景</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    在道路缺陷检测任务中，小目标和复杂背景是主要挑战。标准 YOLOv5 在这些场景下表现不佳，因此我设计并集成了两个自定义 Attention 模块：<strong>MSDA (Multi-Scale Dilated Attention)</strong> 和 <strong>VGAU (Vision Global Attention Upsampling)</strong>。该成果发表于 SCI 期刊 CMC，mAP 达到 87.9%。
+                </p>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">二、MSDA 模块设计</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.1 设计思路</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    小目标检测需要多尺度感受野。MSDA 通过<strong>空洞卷积 (Dilated Convolution)</strong> 并行捕获不同尺度的特征，无需增加太多计算量。
+                </p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class MSDA(nn.Module):
+    """Multi-Scale Dilated Attention Module"""
+    def __init__(self, in_channels, out_channels):
+        super(MSDA, self).__init__()
+
+        # 并行多尺度空洞卷积
+        self.dilated_conv_1 = nn.Conv2d(in_channels, out_channels // 4,
+                                         kernel_size=3, dilation=1, padding=1)
+        self.dilated_conv_2 = nn.Conv2d(in_channels, out_channels // 4,
+                                         kernel_size=3, dilation=3, padding=3)
+        self.dilated_conv_3 = nn.Conv2d(in_channels, out_channels // 4,
+                                         kernel_size=3, dilation=5, padding=5)
+        self.dilated_conv_4 = nn.Conv2d(in_channels, out_channels // 4,
+                                         kernel_size=3, dilation=7, padding=7)
+
+        # 特征融合
+        self.fusion = nn.Conv2d(out_channels, out_channels, kernel_size=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        # 并行多尺度提取
+        feat1 = self.dilated_conv_1(x)
+        feat2 = self.dilated_conv_2(x)
+        feat3 = self.dilated_conv_3(x)
+        feat4 = self.dilated_conv_4(x)
+
+        # 拼接多尺度特征
+        multi_scale_feat = torch.cat([feat1, feat2, feat3, feat4], dim=1)
+
+        # 特征融合
+        out = self.fusion(multi_scale_feat)
+        out = self.bn(out)
+        out = self.relu(out)
+
+        return out</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">2.2 关键点</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>感受野指数级增长</strong>：dilation=1,3,5,7 对应 3×3, 7×7, 11×11, 15×15 感受野</li>
+                    <li><strong>通道分组</strong>：每个尺度只用 1/4 通道，平衡计算量</li>
+                    <li><strong>残差连接</strong>：与原特征相加，保留梯度流动</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">三、VGAU 模块设计</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.1 设计思路</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    上采样过程容易丢失空间信息。VGAU 将<strong>全局注意力</strong>引入上采样，在恢复分辨率的同时保持空间一致性。
+                </p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">class VGAU(nn.Module):
+    """Vision Global Attention Upsampling Module"""
+    def __init__(self, in_channels, out_channels):
+        super(VGAU, self).__init__()
+
+        # 全局注意力分支
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc1 = nn.Linear(in_channels, in_channels // 16)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Linear(in_channels // 16, in_channels)
+        self.sigmoid = nn.Sigmoid()
+
+        # 局部特征提取
+        self.local_conv = nn.Conv2d(in_channels, out_channels,
+                                     kernel_size=3, padding=1)
+
+        # 上采样
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear',
+                                     align_corners=True)
+
+        # 融合
+        self.fusion = nn.Conv2d(out_channels, out_channels, kernel_size=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x, skip_conn=None):
+        b, c, _, _ = x.size()
+
+        # 全局注意力
+        global_feat = self.global_pool(x).view(b, c)
+        att = self.fc1(global_feat)
+        att = self.relu(att)
+        att = self.fc2(att)
+        att = self.sigmoid(att).view(b, c, 1, 1)
+
+        # 注意力加权
+        x_attended = x * att
+
+        # 局部特征 + 上采样
+        x_local = self.local_conv(x_attended)
+        x_up = self.upsample(x_local)
+
+        # 跳跃连接融合
+        if skip_conn is not None:
+            x_up = torch.cat([x_up, skip_conn], dim=1)
+
+        # 最终融合
+        out = self.fusion(x_up)
+        out = self.bn(out)
+
+        return out</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.2 关键点</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>通道注意力</strong>：全局池化 + MLP 学习通道权重</li>
+                    <li><strong>双线性上采样</strong>：比转置卷积更平滑，减少棋盘效应</li>
+                    <li><strong>跳跃连接</strong>：融合浅层细节信息</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">四、集成到 YOLOv5</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.1 修改配置文件</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python"># yolov5/models/yolo.py
+
+# 在 __init__ 中添加模块
+def parse_model(d, ch):  # model_dict, input_channels(3)
+    ...
+    elif m in [MSDA, VGAU]:
+        c1, c2 = ch[f], args[0]
+        args = [c1, c2]
+    ...</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">4.2 插入位置</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">建议的插入位置：</p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>MSDA</strong>：插入到 Backbone 的 C3 模块之后，增强特征提取</li>
+                    <li><strong>VGAU</strong>：替换 Neck 中的上采样模块，改进特征融合</li>
+                </ul>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-yaml"># MGD-YOLO.yaml
+backbone:
+  # [from, number, module, args]
+  [[-1, 1, Conv, [64, 6, 2, 2]],   # 0-P1/2
+   [-1, 1, Conv, [128, 3, 2]],     # 1-P2/4
+   [-1, 3, C3, [128]],
+   [-1, 1, Conv, [256, 3, 2]],     # 3-P3/8
+   [-1, 6, C3, [256]],
+   [-1, 1, MSDA, [256]],           # MSDA 插入点
+   [-1, 1, Conv, [512, 3, 2]],     # 6-P4/16
+   [-1, 9, C3, [512]],
+   [-1, 1, MSDA, [512]],           # MSDA 插入点
+   ...]
+
+head:
+  [[-1, 1, VGAU, [256]],           # VGAU 替代上采样
+   ...]</code></pre>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">五、训练技巧</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">5.1 渐进式训练</h3>
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python"># 第1阶段：冻结自定义模块，训练基础网络
+for name, param in model.named_parameters():
+    if 'MSDA' in name or 'VGAU' in name:
+        param.requires_grad = False
+
+# 第2阶段：解冻所有模块，端到端微调
+for param in model.parameters():
+    param.requires_grad = True
+
+# 使用较小的学习率微调自定义模块
+optimizer = torch.optim.SGD([
+    {'params': base_params, 'lr': 0.01},
+    {'params': custom_params, 'lr': 0.001}
+], momentum=0.937)</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">5.2 数据增强</h3>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>Mosaic</strong>：拼接 4 张图片，增强小目标样本</li>
+                    <li><strong>Copy-Paste</strong>：复制小目标粘贴到其他位置</li>
+                    <li><strong>随机裁剪</strong>：强制模型关注局部区域</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">六、实验结果</h2>
+
+                <div class="bg-white rounded-lg shadow-sm p-6 my-6 border border-stone-200">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-2">模型</th>
+                                <th class="text-left py-2">mAP (%)</th>
+                                <th class="text-left py-2">FPS (A100)</th>
+                                <th class="text-left py-2">参数量 (M)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="py-2">YOLOv5s</td>
+                                <td class="py-2">82.3</td>
+                                <td class="py-2">280</td>
+                                <td class="py-2">7.2</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2">YOLOv5s + MSDA</td>
+                                <td class="py-2">84.7</td>
+                                <td class="py-2">265</td>
+                                <td class="py-2">8.1</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-2">YOLOv5s + VGAU</td>
+                                <td class="py-2">85.2</td>
+                                <td class="py-2">258</td>
+                                <td class="py-2">8.3</td>
+                            </tr>
+                            <tr class="bg-teal-50">
+                                <td class="py-2 font-bold">MGD-YOLO (Ours)</td>
+                                <td class="py-2 font-bold text-teal-700">87.9</td>
+                                <td class="py-2">240</td>
+                                <td class="py-2">9.5</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2 class="text-2xl font-bold text-stone-800 mt-8 mb-4">七、总结</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    通过设计 MSDA 和 VGAU 两个自定义模块，我们在保持实时性的同时显著提升了小目标检测精度。关键启示：
+                </p>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>多尺度特征</strong>对提升小目标检测至关重要</li>
+                    <li><strong>注意力机制</strong>能有效聚焦关键区域</li>
+                    <li><strong>渐进式训练</strong>有助于复杂模型的收敛</li>
+                </ul>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    该方法发表于 <strong>Computers, Materials & Continua (CMC)</strong> SCI 期刊，代码已开源。
+                </p>
+            </div>
+
+            <footer class="mt-12 pt-8 border-t border-stone-200">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 text-sm text-stone-500">
+                        <i class="fas fa-tags"></i>
+                        <span>标签: </span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">YOLO</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">Attention</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">目标检测</span>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <nav class="mt-12 pt-8 border-t border-stone-200">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="../blog/2024-12-10-fastapi-async.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100">
+                    <p class="text-xs text-stone-400 mb-1">下一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">FastAPI 异步编程最佳实践</p>
+                </a>
+                <a href="../blog/2024-11-28-qwen-vl.html" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100 text-right">
+                    <p class="text-xs text-stone-400 mb-1">上一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">Qwen-VL 多模态应用实战</p>
+                </a>
+            </div>
+        </nav>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">感谢阅读！欢迎留言交流</p>
+            <p class="text-xs text-stone-500">© 2024 熊发展. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+
+</html>

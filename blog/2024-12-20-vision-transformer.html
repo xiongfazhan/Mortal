@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Transformer 原理与实战 - 熊发展的技术博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <a href="../index.html" class="flex items-center space-x-4 hover:opacity-80 transition-opacity">
+                <div class="h-10 w-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                    熊
+                </div>
+                <span class="font-bold text-stone-800">返回首页</span>
+            </a>
+            <a href="../blog.html" class="text-sm text-stone-600 hover:text-teal-700 transition-colors">
+                <i class="fas fa-arrow-left mr-1"></i>返回博客列表
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <!-- Article Header -->
+        <article>
+            <header class="mb-8">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-teal-50 text-teal-700 text-sm rounded">计算机视觉</span>
+                    <span class="text-sm text-stone-400">2024-12-20</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-stone-800 mb-4">Vision Transformer 原理与实战</h1>
+                <p class="text-lg text-stone-600">深入理解 ViT 的核心原理，从 Attention 机制到 Patch Embedding，结合代码实战讲解。</p>
+            </header>
+
+            <!-- Article Content -->
+            <div class="prose prose-stone max-w-none">
+                <h2 id="introduction" class="text-2xl font-bold text-stone-800 mt-8 mb-4">一、前言</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    Transformer 架构在 NLP 领域取得了巨大成功，2020 年 Google 团队将 Transformer 引入计算机视觉，提出了 <strong>Vision Transformer (ViT)</strong>。本文将深入剖析 ViT 的核心思想，并通过 PyTorch 代码实现帮助理解。
+                </p>
+
+                <h2 id="why-vit" class="text-2xl font-bold text-stone-800 mt-8 mb-4">二、为什么需要 ViT？</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    传统 CNN 架构（如 ResNet）依赖<strong>归纳偏置（Inductive Bias）</strong>：局部性、平移不变性。这种设计在图像分类任务中表现优异，但也限制了模型对全局信息的捕捉能力。
+                </p>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    ViT 抛弃了卷积操作，直接将图像切块（Patch）后视为"单词序列"，通过 Self-Attention 捕捉全局依赖关系。虽然需要更多数据训练，但在大规模数据集上展现出超越 CNN 的潜力。
+                </p>
+
+                <h2 id="core-architecture" class="text-2xl font-bold text-stone-800 mt-8 mb-4">三、核心架构</h2>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.1 Patch Embedding</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    ViT 首先将输入图像（如 224×224×3）切分为固定大小的 Patch（如 16×16），每个 Patch 展平后视为一个 token。通过线性投影将 Patch 映射到固定维度：
+                </p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">import torch
+import torch.nn as nn
+
+class PatchEmbedding(nn.Module):
+    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768):
+        super().__init__()
+        self.patch_size = patch_size
+        self.num_patches = (img_size // patch_size) ** 2
+
+        # 使用卷积实现 patch embedding
+        self.proj = nn.Conv2d(
+            in_channels, embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size
+        )
+
+    def forward(self, x):
+        # x: [B, C, H, W]
+        x = self.proj(x)  # [B, embed_dim, H/patch_size, W/patch_size]
+        x = x.flatten(2)  # [B, embed_dim, num_patches]
+        x = x.transpose(1, 2)  # [B, num_patches, embed_dim]
+        return x</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.2 Position Encoding</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    由于 Transformer 本身不具备位置感知能力，需要添加可学习的位置编码：
+                </p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">class PositionEmbedding(nn.Module):
+    def __init__(self, num_patches, embed_dim):
+        super().__init__()
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
+
+    def forward(self, x):
+        return x + self.pos_embed</code></pre>
+                </div>
+
+                <h3 class="text-xl font-semibold text-stone-800 mt-6 mb-3">3.3 Multi-Head Self-Attention</h3>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    核心的 Attention 机制计算公式：
+                </p>
+
+                <div class="bg-stone-100 rounded-lg p-4 my-6 text-center">
+                    <code class="text-lg">Attention(Q, K, V) = softmax(QK^T / √d_k)V</code>
+                </div>
+
+                <h2 id="code-practice" class="text-2xl font-bold text-stone-800 mt-8 mb-4">四、完整实现</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    以下是简化版的 ViT 实现，包含了核心组件：
+                </p>
+
+                <div class="bg-stone-800 rounded-lg p-4 my-6 overflow-x-auto">
+                    <pre><code class="language-python">class VisionTransformer(nn.Module):
+    def __init__(
+        self,
+        img_size=224,
+        patch_size=16,
+        in_channels=3,
+        num_classes=1000,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4.0
+    ):
+        super().__init__()
+        self.patch_embed = PatchEmbedding(img_size, patch_size, in_channels, embed_dim)
+        num_patches = self.patch_embed.num_patches
+
+        # Class token 和 Position embedding
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+
+        # Transformer Encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            embed_dim, num_heads, int(embed_dim * mlp_ratio), dropout=0.1
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, depth)
+
+        # MLP Head
+        self.head = nn.Linear(embed_dim, num_classes)
+
+    def forward(self, x):
+        # Patch embedding
+        x = self.patch_embed(x)
+
+        # Add cls token
+        cls_tokens = self.cls_token.expand(x.size(0), -1, -1)
+        x = torch.cat([cls_tokens, x], dim=1)
+
+        # Add position embedding
+        x = x + self.pos_embed
+
+        # Transformer encoding
+        x = self.transformer(x.transpose(0, 1)).transpose(0, 1)
+
+        # Classification head
+        return self.head(x[:, 0])</code></pre>
+                </div>
+
+                <h2 id="tips" class="text-2xl font-bold text-stone-800 mt-8 mb-4">五、实战技巧</h2>
+                <ul class="list-disc list-inside text-stone-600 space-y-2 mb-4">
+                    <li><strong>数据增强</strong>：使用 RandAugment、MixUp 等技术提升泛化能力</li>
+                    <li><strong>预训练</strong>：在大规模数据集（如 JFT-300M）上预训练后微调</li>
+                    <li><strong>微调策略</strong>：使用较大学习率（1e-3）+ Layer-wise LR decay</li>
+                    <li><strong>正则化</strong>：DropPath、Label Smoothing 对训练稳定性很重要</li>
+                </ul>
+
+                <h2 id="summary" class="text-2xl font-bold text-stone-800 mt-8 mb-4">六、总结</h2>
+                <p class="text-stone-600 leading-relaxed mb-4">
+                    ViT 开启了视觉 Transformer 的新时代，后续出现了 Swin、DeiT 等改进版本。理解 ViT 的核心思想对于掌握现代视觉模型至关重要。建议读者在自己的数据集上复现本文代码，加深理解。
+                </p>
+            </div>
+
+            <!-- Article Footer -->
+            <footer class="mt-12 pt-8 border-t border-stone-200">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-2 text-sm text-stone-500">
+                        <i class="fas fa-tags"></i>
+                        <span>标签: </span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">Transformer</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">计算机视觉</span>
+                        <span class="px-2 py-1 bg-stone-100 rounded">PyTorch</span>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <!-- Navigation -->
+        <nav class="mt-12 pt-8 border-t border-stone-200">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="#" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100">
+                    <p class="text-xs text-stone-400 mb-1">上一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">YOLO 改进实战</p>
+                </a>
+                <a href="#" class="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-stone-100 text-right">
+                    <p class="text-xs text-stone-400 mb-1">下一篇</p>
+                    <p class="font-semibold text-stone-800 hover:text-teal-700">RAG 实战：从原理到生产部署</p>
+                </a>
+            </div>
+        </nav>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm mb-4">感谢阅读！欢迎留言交流</p>
+            <p class="text-xs text-stone-500">© 2024 熊发展. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize syntax highlighting
+        document.addEventListener('DOMContentLoaded', () => {
+            hljs.highlightAll();
+        });
+    </script>
+</body>
+
+</html>
